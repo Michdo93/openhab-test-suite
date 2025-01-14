@@ -1,53 +1,45 @@
 import time
 from OpenHABConnector import OpenHABConnector
+import json
 
 class RuleTester:
     def __init__(self, connector: OpenHABConnector):
         self.connector = connector
 
-    def _get_status(self, rule_uid: str) -> str:
-        """Ruft den Status einer Regel ab."""
-        endpoint = f"/rest/rules/{rule_uid}/status"
-        response = self.connector.get(endpoint)
-        if response:
-            return response.get("status", "UNKNOWN")
-        return "UNKNOWN"
+    def run_rule(self, rule_uid: str) -> bool:
+        """Führt eine Regel sofort aus."""
+        endpoint = f"/rules/{rule_uid}/runnow"
+        # JSON-Daten senden
+        data = {}  # Füge hier die notwendigen Daten ein, falls erforderlich
+        response = self.connector.post(endpoint, headers={"Content-type": "application/json", "Accept": "application/json"}, data=json.dumps(data))
 
-    def is_rule_status(self, rule_uid: str, status_to_check: str) -> bool:
-        """Prüft, ob eine Regel einen bestimmten Status hat."""
-        return self._get_status(rule_uid) == status_to_check
-
-    def is_rule_active(self, rule_uid: str) -> bool:
-        """Prüft, ob eine Regel aktiv (IDLE oder RUNNING) ist."""
-        return self.is_rule_status(rule_uid, "IDLE") or self.is_rule_status(rule_uid, "RUNNING")
+        if response and response.status_code == 200:
+            print(f"Regel {rule_uid} erfolgreich ausgeführt.")
+            return True
+        print(f"Fehler beim Ausführen der Regel {rule_uid}. Antwort: {response}")
+        return False
 
     def enable_rule(self, rule_uid: str) -> bool:
         """Aktiviert eine Regel."""
-        endpoint = f"/rest/rules/{rule_uid}/enable"
-        return self._toggle_rule(endpoint, rule_uid)
+        endpoint = f"/rules/{rule_uid}/enable"
+        # Keine Daten für PUT erforderlich, aber korrekt als JSON senden
+        response = self.connector.put(endpoint, headers={"Content-type": "application/json", "Accept": "application/json"})
+
+        if response and response.status_code == 200:
+            print(f"Regel {rule_uid} erfolgreich aktiviert.")
+            return True
+        print(f"Fehler beim Aktivieren der Regel {rule_uid}. Antwort: {response}")
+        return False
 
     def disable_rule(self, rule_uid: str) -> bool:
         """Deaktiviert eine Regel."""
-        endpoint = f"/rest/rules/{rule_uid}/disable"
-        return self._toggle_rule(endpoint, rule_uid)
+        endpoint = f"/rules/{rule_uid}/disable"
+        response = self.connector.put(endpoint, headers={"Content-type": "application/json", "Accept": "application/json"})
 
-    def _toggle_rule(self, endpoint: str, rule_uid: str) -> bool:
-        """Hilfsmethode zum Aktivieren/Deaktivieren einer Regel."""
-        response = self.connector.put(endpoint)
-        if response is None:
-            print(f"Rule {rule_uid} erfolgreich geändert.")
+        if response and response.status_code == 200:
+            print(f"Regel {rule_uid} erfolgreich deaktiviert.")
             return True
-        print(f"Fehler beim Ändern der Regel {rule_uid}.")
-        return False
-
-    def run_rule(self, rule_uid: str) -> bool:
-        """Führt eine Regel manuell aus."""
-        endpoint = f"/rest/rules/{rule_uid}/run"
-        response = self.connector.post(endpoint)
-        if response is None:
-            print(f"Rule {rule_uid} erfolgreich ausgeführt.")
-            return True
-        print(f"Fehler beim Ausführen der Regel {rule_uid}.")
+        print(f"Fehler beim Deaktivieren der Regel {rule_uid}. Antwort: {response}")
         return False
 
     def test_rule_execution(self, rule_uid: str, expected_item: str, expected_value: str) -> bool:
@@ -60,10 +52,21 @@ class RuleTester:
         :return: True, wenn der Test erfolgreich war, andernfalls False.
         """
         try:
-            self.run_rule(rule_uid)
+            # Regel ausführen
+            if not self.run_rule(rule_uid):
+                print(f"Fehler: Regel {rule_uid} konnte nicht ausgeführt werden.")
+                return False
+
+            # Kurze Pause für die Regel-Ausführung
             time.sleep(2)
-            state = self.connector.get(f"/rest/items/{expected_item}/state")
-            print(f"{expected_item} state after rule execution: {state}")
+
+            # Zustand des Items abrufen
+            state = self.connector.get(f"/items/{expected_item}/state")
+            if state is None or state != expected_value:
+                print(f"Fehler: Zustand des Items {expected_item} nach der Regel-Ausführung stimmt nicht überein. Erwartet: {expected_value}, Gefunden: {state}")
+                return False
+
+            print(f"{expected_item} Zustand nach der Regel-Ausführung: {state}")
             return state == expected_value
         except Exception as e:
             print(f"Fehler bei der Regel-Testausführung: {e}")
