@@ -1,7 +1,6 @@
 # test_thingTester.py
 import time
-from OpenHABConnector import OpenHABConnector
-from ThingTester import ThingTester
+from openhab_test_suite import OpenHABConnector, ThingTester
 
 # Here we establish the connection to the OpenHAB API
 connector = OpenHABConnector("http://127.0.0.1:8080", "openhab", "habopen")

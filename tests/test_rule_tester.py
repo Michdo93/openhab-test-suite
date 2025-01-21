@@ -1,6 +1,6 @@
 import time
-from OpenHABConnector import OpenHABConnector
-from RuleTester import RuleTester
+from openhab_test_suite import OpenHABConnector, RuleTester
+
 
 # Establishing connection to the OpenHAB API
 connector = OpenHABConnector("http://127.0.0.1:8080", "openhab", "habopen")

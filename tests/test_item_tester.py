@@ -1,5 +1,4 @@
-from ItemTester import ItemTester
-from OpenHABConnector import OpenHABConnector
+from openhab_test_suite import OpenHABConnector, ItemTester
 
 # Establishing connection to the OpenHAB API
 connector = OpenHABConnector("http://127.0.0.1:8080", "openhab", "habopen")

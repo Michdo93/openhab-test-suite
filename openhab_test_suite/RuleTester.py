@@ -1,5 +1,5 @@
 import time
-from OpenHABConnector import OpenHABConnector
+from .OpenHABConnector import OpenHABConnector
 import json
 from openhab import CRUD
 

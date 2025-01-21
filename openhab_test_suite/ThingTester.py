@@ -1,4 +1,4 @@
-from OpenHABConnector import OpenHABConnector
+from .OpenHABConnector import OpenHABConnector
 
 class ThingTester:
     def __init__(self, connector: OpenHABConnector):
