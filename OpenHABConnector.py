@@ -59,34 +59,34 @@ class OpenHABConnector:
         except requests.exceptions.RequestException as err:
             print(err)
 
-    def __executeRequest(self, header: dict = None, resource_path: str = None, method: str = None, data = None):
+    def __executeRequest(self, header: dict = None, resourcePath: str = None, method: str = None, data = None):
         """
         Executes an HTTP request to the OpenHAB server.
 
         :param header: Optional; A dictionary of headers to be sent with the request.
-        :param resource_path: The path of the resource to interact with.
+        :param resourcePath: The path of the resource to interact with.
         :param method: The HTTP method (GET, POST, PUT, DELETE).
         :param data: Optional; The data to send in the request (for POST and PUT requests).
         :return: The response of the request, either as JSON or plain text.
         :raises ValueError: If the method is invalid or if the resource path is not provided.
         """
-        if resource_path is not None and method is not None:
+        if resourcePath is not None and method is not None:
             method = method.lower()
 
             # Set header to an empty dictionary if None
             header = header or {}
 
-            if resource_path[0] != "/":
-                resource_path = "/" + resource_path
+            if resourcePath[0] != "/":
+                resourcePath = "/" + resourcePath
 
-            if not "/rest" in resource_path:
-                resource_path = "/rest" + resource_path
+            if not "/rest" in resourcePath:
+                resourcePath = "/rest" + resourcePath
 
             self.session.headers.update(header)
 
             try:
                 if method == "get":
-                    response = self.session.get(self.url + resource_path, auth=self.auth, timeout=5)
+                    response = self.session.get(self.url + resourcePath, auth=self.auth, timeout=5)
                     response.raise_for_status()
 
                     if response.ok or response.status_code == 200:
@@ -95,17 +95,17 @@ class OpenHABConnector:
                         else:
                             return response.text
                 elif method == "put":
-                    response = self.session.put(self.url + resource_path, auth=self.auth, data=data, timeout=5)
+                    response = self.session.put(self.url + resourcePath, auth=self.auth, data = data, timeout=5)
                     response.raise_for_status()
 
                     return response
                 elif method == "post":
-                    response = self.session.post(self.url + resource_path, auth=self.auth, data=data, timeout=5)
+                    response = self.session.post(self.url + resourcePath, auth=self.auth, data = data, timeout=5)
                     response.raise_for_status()
 
                     return response
                 elif method == "delete":
-                    response = self.session.delete(self.url + resource_path, auth=self.auth, timeout=5)
+                    response = self.session.delete(self.url + resourcePath, auth=self.auth, timeout=5)
                     response.raise_for_status()
 
                     return response
@@ -122,45 +122,45 @@ class OpenHABConnector:
         else:
             raise ValueError('You have to enter a valid resource path for accessing the REST API!')
 
-    def get(self, endpoint: str, headers=None):
+    def get(self, endpoint: str, header: dict = None):
         """
         Sends a GET request to the OpenHAB server.
 
         :param endpoint: The endpoint for the GET request (e.g., "/items").
-        :param headers: Optional; Headers to be sent with the request.
+        :param header: Optional; Headers to be sent with the request.
         :return: The response from the GET request, either as JSON or plain text.
         """
-        return self.__executeRequest(headers, endpoint, "get")
+        return self.__executeRequest(header, endpoint, "get")
 
-    def post(self, endpoint: str, headers=None, data=None):
+    def post(self, endpoint: str, header: dict = None, data = None):
         """
         Sends a POST request to the OpenHAB server.
 
         :param endpoint: The endpoint for the POST request (e.g., "/items").
-        :param headers: Optional; Headers to be sent with the request.
+        :param header: Optional; Headers to be sent with the request.
         :param data: Optional; The data to send in the POST request.
         :return: The response from the POST request.
         """
-        return self.__executeRequest(headers, endpoint, "post", data=data)
+        return self.__executeRequest(header, endpoint, "post", data = data)
 
-    def put(self, endpoint: str, headers=None, data=None):
+    def put(self, endpoint: str, header: dict = None, data = None):
         """
         Sends a PUT request to the OpenHAB server.
 
         :param endpoint: The endpoint for the PUT request (e.g., "/items").
-        :param headers: Optional; Headers to be sent with the request.
+        :param header: Optional; Headers to be sent with the request.
         :param data: Optional; The data to send in the PUT request.
         :return: The response from the PUT request.
         """
-        return self.__executeRequest(headers, endpoint, "put", data=data)
+        return self.__executeRequest(header, endpoint, "put", data = data)
 
-    def delete(self, endpoint: str, headers=None, data=None):
+    def delete(self, endpoint: str, header: dict = None, data = None):
         """
         Sends a DELETE request to the OpenHAB server.
 
         :param endpoint: The endpoint for the DELETE request (e.g., "/items").
-        :param headers: Optional; Headers to be sent with the request.
+        :param header: Optional; Headers to be sent with the request.
         :param data: Optional; The data to send in the DELETE request.
         :return: The response from the DELETE request.
         """
-        return self.__executeRequest(headers, endpoint, "delete", data=data)
+        return self.__executeRequest(header, endpoint, "delete", data = data)

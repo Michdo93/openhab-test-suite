@@ -10,151 +10,151 @@ class ThingTester:
         """
         self.connector = connector
 
-    def _get_thing_status(self, thing_uid: str) -> str:
+    def _getThingStatus(self, thingUid: str) -> str:
         """
         Retrieves the status of a Thing based on its UID.
 
         Parameters:
-            thing_uid (str): The unique identifier (UID) of the Thing.
+            thingUid (str): The unique identifier (UID) of the Thing.
 
         Returns:
             str: The status of the Thing (e.g., "ONLINE", "OFFLINE", etc.). Returns "UNKNOWN" if status cannot be determined.
         """
-        endpoint = f"/rest/things/{thing_uid}"
+        endpoint = f"/rest/things/{thingUid}"
         response = self.connector.get(endpoint)
 
         if response:
-            status_info = response.get("statusInfo", {})
-            return status_info.get("status", "UNKNOWN")
+            statusInfo = response.get("statusInfo", {})
+            return statusInfo.get("status", "UNKNOWN")
         return "UNKNOWN"
 
-    def is_thing_status(self, thing_uid: str, status_to_check: str) -> bool:
+    def isThingStatus(self, thingUid: str, statusToCheck: str) -> bool:
         """
         Checks whether a Thing has the specified status.
 
         Parameters:
-            thing_uid (str): The unique identifier (UID) of the Thing.
-            status_to_check (str): The status to check against (e.g., "ONLINE", "OFFLINE").
+            thingUid (str): The unique identifier (UID) of the Thing.
+            statusToCheck (str): The status to check against (e.g., "ONLINE", "OFFLINE").
 
         Returns:
             bool: True if the Thing has the specified status, False otherwise.
         """
-        return self._get_thing_status(thing_uid) == status_to_check
+        return self._getThingStatus(thingUid) == statusToCheck
 
-    def is_thing_online(self, thing_uid: str) -> bool:
+    def isThingOnline(self, thingUid: str) -> bool:
         """
         Checks if a Thing is ONLINE.
 
         Parameters:
-            thing_uid (str): The unique identifier (UID) of the Thing.
+            thingUid (str): The unique identifier (UID) of the Thing.
 
         Returns:
             bool: True if the Thing is ONLINE, False otherwise.
         """
-        return self.is_thing_status(thing_uid, "ONLINE")
+        return self.isThingStatus(thingUid, "ONLINE")
 
-    def is_thing_offline(self, thing_uid: str) -> bool:
+    def isThingOffline(self, thingUid: str) -> bool:
         """
         Checks if a Thing is OFFLINE.
 
         Parameters:
-            thing_uid (str): The unique identifier (UID) of the Thing.
+            thingUid (str): The unique identifier (UID) of the Thing.
 
         Returns:
             bool: True if the Thing is OFFLINE, False otherwise.
         """
-        return self.is_thing_status(thing_uid, "OFFLINE")
+        return self.isThingStatus(thingUid, "OFFLINE")
 
-    def is_thing_pending(self, thing_uid: str) -> bool:
+    def isThingPending(self, thingUid: str) -> bool:
         """
         Checks if a Thing is in PENDING status.
 
         Parameters:
-            thing_uid (str): The unique identifier (UID) of the Thing.
+            thingUid (str): The unique identifier (UID) of the Thing.
 
         Returns:
             bool: True if the Thing is in PENDING status, False otherwise.
         """
-        return self.is_thing_status(thing_uid, "PENDING")
+        return self.isThingStatus(thingUid, "PENDING")
 
-    def is_thing_unknown(self, thing_uid: str) -> bool:
+    def isThingUnknown(self, thingUid: str) -> bool:
         """
         Checks if a Thing is in UNKNOWN status.
 
         Parameters:
-            thing_uid (str): The unique identifier (UID) of the Thing.
+            thingUid (str): The unique identifier (UID) of the Thing.
 
         Returns:
             bool: True if the Thing is in UNKNOWN status, False otherwise.
         """
-        return self.is_thing_status(thing_uid, "UNKNOWN")
+        return self.isThingStatus(thingUid, "UNKNOWN")
 
-    def is_thing_uninitialized(self, thing_uid: str) -> bool:
+    def isThingUninitialized(self, thingUid: str) -> bool:
         """
         Checks if a Thing is in UNINITIALIZED status.
 
         Parameters:
-            thing_uid (str): The unique identifier (UID) of the Thing.
+            thingUid (str): The unique identifier (UID) of the Thing.
 
         Returns:
             bool: True if the Thing is in UNINITIALIZED status, False otherwise.
         """
-        return self.is_thing_status(thing_uid, "UNINITIALIZED")
+        return self.isThingStatus(thingUid, "UNINITIALIZED")
 
-    def is_thing_error(self, thing_uid: str) -> bool:
+    def isThingError(self, thingUid: str) -> bool:
         """
         Checks if a Thing is in ERROR state.
 
         Parameters:
-            thing_uid (str): The unique identifier (UID) of the Thing.
+            thingUid (str): The unique identifier (UID) of the Thing.
 
         Returns:
             bool: True if the Thing is in ERROR state, False otherwise.
         """
-        return self.is_thing_status(thing_uid, "ERROR")
+        return self.isThingStatus(thingUid, "ERROR")
 
-    def enable_thing(self, thing_uid: str) -> bool:
+    def enableThing(self, thingUid: str) -> bool:
         """
         Enables a Thing by sending a PUT request to activate it.
 
         Parameters:
-            thing_uid (str): The unique identifier (UID) of the Thing to be enabled.
+            thingUid (str): The unique identifier (UID) of the Thing to be enabled.
 
         Returns:
             bool: True if the Thing was successfully enabled, False otherwise.
         """
-        endpoint = f"/rest/things/{thing_uid}/enable"
+        endpoint = f"/rest/things/{thingUid}/enable"
         data = "true"  # Enables the Thing (plain text "true")
-        headers = {"Content-Type": "text/plain"}
+        header = {"Content-Type": "text/plain"}
         
         # Execute PUT request
-        response = self.connector.put(endpoint, headers=headers, data=data)
+        response = self.connector.put(endpoint, header=header, data=data)
         
         if response and response.status_code == 200:
-            print(f"Thing {thing_uid} was successfully enabled.")
+            print(f"Thing {thingUid} was successfully enabled.")
             return True
-        print(f"Error enabling Thing {thing_uid}. Response: {response}")
+        print(f"Error enabling Thing {thingUid}. Response: {response}")
         return False
 
-    def disable_thing(self, thing_uid: str) -> bool:
+    def disableThing(self, thingUid: str) -> bool:
         """
         Disables a Thing by sending a PUT request to deactivate it.
 
         Parameters:
-            thing_uid (str): The unique identifier (UID) of the Thing to be disabled.
+            thingUid (str): The unique identifier (UID) of the Thing to be disabled.
 
         Returns:
             bool: True if the Thing was successfully disabled, False otherwise.
         """
-        endpoint = f"/rest/things/{thing_uid}/enable"
+        endpoint = f"/rest/things/{thingUid}/enable"
         data = "false"  # Disables the Thing (plain text "false")
-        headers = {"Content-Type": "text/plain"}
+        header = {"Content-Type": "text/plain"}
 
         # Execute PUT request
-        response = self.connector.put(endpoint, headers=headers, data=data)
+        response = self.connector.put(endpoint, header=header, data=data)
 
         if response and response.status_code == 200:
-            print(f"Thing {thing_uid} was successfully disabled.")
+            print(f"Thing {thingUid} was successfully disabled.")
             return True
-        print(f"Error disabling Thing {thing_uid}. Response: {response}")
+        print(f"Error disabling Thing {thingUid}. Response: {response}")
         return False
