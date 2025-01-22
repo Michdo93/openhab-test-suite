@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: openhab-test-suite
-Version: 0.1.0
+Version: 1.0.0
 Summary: A comprehensive testing library for validating and interacting with openHAB installations.
 Home-page: https://github.com/Michdo93/openhab-test-suite
 Author: Michael Christian Dörflinger
@@ -85,14 +85,14 @@ connector = OpenHABConnector(
 )
 ```
 
-### Test Items  
+### Test Things  
 ```python
-from openhab_test_suite import ItemTester
+from openhab_test_suite import ThingTester
 
-itemTester = ItemTester(connector)
+thingTester = ThingTester(connector)
 
-# Check if an item is ONLINE
-isOnline = itemTester.isItemOnline("LightSwitch1")
+# Check if a thing is ONLINE
+isOnline = thingTester.isThingOnline("LightSwitch1")
 print(f"LightSwitch1 online status: {isOnline}")
 ```
 
@@ -106,6 +106,17 @@ ruleTester = RuleTester(connector)
 ruleTester.runRule("myRuleUID")
 ```
 
+### Test Items
+```python
+from openhab_test_suite import ItemTester
+
+itemTester = ItemTester(connector)
+itemName = "testSwithc"
+
+# Check if an item could reach expected state
+print(f"{itemName}: ", tester.testSwitch(itemName=itemName, command="ON", expectedState="ON"))
+```
+
 ---
 
 ## **Full List of Methods**
@@ -113,54 +124,78 @@ ruleTester.runRule("myRuleUID")
 ### **OpenHABConnector**  
 Handles communication with the openHAB REST API.
 
-| Method         | Description                                                                                              |
-|----------------|----------------------------------------------------------------------------------------------------------|
-| `get(endpoint, header)` | Sends a GET request to the specified endpoint. Returns the response.                              |
-| `post(endpoint, header, data)` | Sends a POST request to the specified endpoint with optional headers and data. Returns the response.  |
-| `put(endpoint, header, data)` | Sends a PUT request to the specified endpoint with optional headers and data. Returns the response.   |
+| **Method**                              | **Description**                                                                                                         | **Parameters**                                                                                                                | **Return Value**                                 |
+|-----------------------------------------|-------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------|
+| `__init__(self, url, username=None, password=None)` | Initializes the OpenHABConnector instance and establishes a connection to the server.                                    | `url` (str): Base URL of the OpenHAB server<br>`username` (str, optional): Username for authentication<br>`password` (str, optional): Password | None                                             |
+| `__login(self)`                         | Logs into the OpenHAB server and checks the connection.                                                                  | None                                                                                                                          | None                                             |
+| `__executeRequest(self, header=None, resourcePath=None, method=None, data=None)` | Executes an HTTP request to the OpenHAB server (internal method).                                                        | `header` (dict, optional): HTTP headers<br>`resourcePath` (str): API resource path<br>`method` (str): HTTP method<br>`data` (optional): Data to send | JSON or Text                                    |
+| `get(self, endpoint, header=None)`      | Sends a GET request to the OpenHAB server.                                                                               | `endpoint` (str): Target endpoint<br>`header` (dict, optional): HTTP headers                                                 | JSON or Text                                    |
+| `post(self, endpoint, header=None, data=None)` | Sends a POST request to the OpenHAB server.                                                                             | `endpoint` (str): Target endpoint<br>`header` (dict, optional): HTTP headers<br>`data` (optional): Data to send              | Response of the request                         |
+| `put(self, endpoint, header=None, data=None)`  | Sends a PUT request to the OpenHAB server.                                                                              | `endpoint` (str): Target endpoint<br>`header` (dict, optional): HTTP headers<br>`data` (optional): Data to send              | Response of the request                         |
+| `delete(self, endpoint, header=None, data=None)` | Sends a DELETE request to the OpenHAB server.                                                                           | `endpoint` (str): Target endpoint<br>`header` (dict, optional): HTTP headers<br>`data` (optional): Data to send              | Response of the request                         |
 
 ---
 
 ### **ItemTester**  
 Provides methods to test and validate openHAB items.
 
-| Method                     | Description                                                                                   |
-|----------------------------|-----------------------------------------------------------------------------------------------|
-| `isItemOnline(itemName)`   | Checks if the specified item is ONLINE.                                                       |
-| `getItemState(itemName)`   | Retrieves the current state of an item.                                                       |
-| `setItemState(itemName, value)` | Sets the state of an item to the specified value.                                               |
-| `testItemState(itemName, expectedValue)` | Tests if the item's state matches the expected value.                                     |
-| `sendCommand(itemName, command)` | Sends a command to the specified item.                                                           |
+| **Method**             | **Parameters**                                                                                                                   | **Return Value**         | **Description**                                                                                                                                         |
+|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------|--------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `__init__`             | `connector: OpenHABConnector`                                                                                                    | None                     | Initializes the `ItemTester` class with an OpenHAB connector.                                                                                           |
+| `doesItemExist`        | `itemName: str`                                                                                                                  | `True`/`False`           | Checks whether an item exists in the OpenHAB system.                                                                                                    |
+| `checkItemIsType`      | `itemName: str`, `itemType: str`                                                                                                 | `True`/`False`           | Checks if an item has the expected type.                                                                                                                |
+| `checkItemHasState`    | `itemName: str`, `state`                                                                                                         | `True`/`False`           | Verifies whether an item has a specific state.                                                                                                          |
+| `testColor`            | `itemName: str`, `command: str`, `expectedState=None`, `timeout: int = 60`                                                       | `True`/`False`           | Tests the functionality of an item of type `Color`.                                                                                                     |
+| `testContact`          | `itemName: str`, `update: str = None`, `expectedState: str = None`, `timeout: int = 60`                                          | `True`/`False`           | Tests the functionality of an item of type `Contact`.                                                                                                   |
+| `testDateTime`         | `itemName: str`, `command: str`, `expectedState=None`, `timeout: int = 60`                                                       | `True`/`False`           | Tests the functionality of an item of type `DateTime`.                                                                                                  |
+| `testDimmer`           | `itemName: str`, `command: str`, `expectedState=None`, `timeout: int = 60`                                                       | `True`/`False`           | Tests the functionality of an item of type `Dimmer`.                                                                                                    |
+| `testImage`            | `itemName: str`, `command: str`, `expectedState=None`, `timeout: int = 60`                                                       | `True`/`False`           | Tests the functionality of an item of type `Image`.                                                                                                     |
+| `testLocation`         | `itemName: str`, `update: str`, `expectedState=None`, `timeout: int = 60`                                                        | `True`/`False`           | Tests the functionality of an item of type `Location`.                                                                                                  |
+| `testNumber`           | `itemName: str`, `command`, `expectedState=None`, `timeout: int = 60`                                                            | `True`/`False`           | Tests the functionality of an item of type `Number`.                                                                                                    |
+| `testPlayer`           | `itemName: str`, `command: str`, `expectedState=None`, `timeout: int = 60`                                                       | `True`/`False`           | Tests the functionality of an item of type `Player`.                                                                                                    |
+| `testRollershutter`    | `itemName: str`, `command: str`, `expectedState=None`, `timeout: int = 60`                                                       | `True`/`False`           | Tests the functionality of an item of type `Rollershutter`.                                                                                            |
+| `testString`           | `itemName: str`, `command`, `expectedState=None`, `timeout: int = 60`                                                            | `True`/`False`           | Tests the functionality of an item of type `String`.                                                                                                    |
+| `testSwitch`           | `itemName: str`, `command: str`, `expectedState=None`, `timeout: int = 60`                                                       | `True`/`False`           | Tests the functionality of an item of type `Switch`.                                                                                                    |
+| `__testItem`           | `itemName: str`, `itemType: str`, `commandOrUpdate=None`, `expectedState=None`, `timeout: int = 60`                              | `True`/`False`           | General test function for verifying the functionality of an item.                                                                                       |
+| `__reset_item`         | `itemName: str`, `itemType: str`, `initialState`                                                                                 | None                     | Resets the state of an item to its original state.                                                                                                      |
+| `__check_final_state`  | `itemName: str`, `expectedState`                                                                                                 | `True`/`False`           | Checks the final state of an item after processing a command or update.                                                                                 |
 
 ---
 
 ### **ThingTester**  
 Provides methods to test and validate openHAB things.
 
-| Method                     | Description                                                                                   |
-|----------------------------|-----------------------------------------------------------------------------------------------|
-| `isThingOnline(thingUID)`  | Checks if the specified thing is ONLINE.                                                      |
-| `getThingStatus(thingUID)` | Retrieves the current status of a thing.                                                      |
-| `testThingStatus(thingUID, expectedStatus)` | Tests if the thing's status matches the expected value.                                     |
-| `enableThing(thingUID)`    | Enables the specified thing.                                                                  |
-| `disableThing(thingUID)`   | Disables the specified thing.                                                                 |
+| **Method**                         | **Description**                                                                                                    | **Parameters**                                                                                                          | **Return Value**                               |
+|-------------------------------------|--------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|------------------------------------------------|
+| `__init__(self, connector: OpenHABConnector)` | Initializes the `ThingTester` with the provided OpenHAB connector.                                                   | `connector` (OpenHABConnector): The OpenHAB connector used to interact with the OpenHAB server.                           | None                                           |
+| `_getThingStatus(self, thingUid: str)` | Retrieves the status of a Thing based on its unique identifier (UID).                                                | `thingUid` (str): The unique identifier (UID) of the Thing.                                                              | `str`: The status of the Thing (e.g., "ONLINE", "OFFLINE", "UNKNOWN"). |
+| `isThingStatus(self, thingUid: str, statusToCheck: str)` | Checks if a Thing has the specified status.                                                                        | `thingUid` (str): The unique identifier (UID) of the Thing.<br> `statusToCheck` (str): The status to check (e.g., "ONLINE", "OFFLINE"). | `bool`: `True` if the Thing matches the status, `False` otherwise. |
+| `isThingOnline(self, thingUid: str)` | Checks if a Thing is in the ONLINE status.                                                                          | `thingUid` (str): The unique identifier (UID) of the Thing.                                                               | `bool`: `True` if the Thing is ONLINE, `False` otherwise. |
+| `isThingOffline(self, thingUid: str)` | Checks if a Thing is in the OFFLINE status.                                                                         | `thingUid` (str): The unique identifier (UID) of the Thing.                                                               | `bool`: `True` if the Thing is OFFLINE, `False` otherwise. |
+| `isThingPending(self, thingUid: str)` | Checks if a Thing is in the PENDING status.                                                                         | `thingUid` (str): The unique identifier (UID) of the Thing.                                                               | `bool`: `True` if the Thing is PENDING, `False` otherwise. |
+| `isThingUnknown(self, thingUid: str)` | Checks if a Thing is in the UNKNOWN status.                                                                         | `thingUid` (str): The unique identifier (UID) of the Thing.                                                               | `bool`: `True` if the Thing is UNKNOWN, `False` otherwise. |
+| `isThingUninitialized(self, thingUid: str)` | Checks if a Thing is in the UNINITIALIZED status.                                                                   | `thingUid` (str): The unique identifier (UID) of the Thing.                                                               | `bool`: `True` if the Thing is UNINITIALIZED, `False` otherwise. |
+| `isThingError(self, thingUid: str)` | Checks if a Thing is in the ERROR state.                                                                             | `thingUid` (str): The unique identifier (UID) of the Thing.                                                               | `bool`: `True` if the Thing is in ERROR state, `False` otherwise. |
+| `enableThing(self, thingUid: str)`  | Enables a Thing by sending a PUT request to activate it.                                                             | `thingUid` (str): The unique identifier (UID) of the Thing to be enabled.                                                  | `bool`: `True` if the Thing was successfully enabled, `False` otherwise. |
+| `disableThing(self, thingUid: str)` | Disables a Thing by sending a PUT request to deactivate it.                                                           | `thingUid` (str): The unique identifier (UID) of the Thing to be disabled.                                                | `bool`: `True` if the Thing was successfully disabled, `False` otherwise. |
 
 ---
 
 ### **RuleTester**  
 Provides methods to manage and test openHAB rules.
 
-| Method                     | Description                                                                                   |
-|----------------------------|-----------------------------------------------------------------------------------------------|
-| `runRule(ruleUid)`         | Executes a rule immediately.                                                                  |
-| `enableRule(ruleUid)`      | Enables the specified rule.                                                                   |
-| `disableRule(ruleUid)`     | Disables the specified rule.                                                                  |
-| `testRuleExecution(ruleUid, expectedItem, expectedValue)` | Tests the execution of a rule and verifies the outcome by checking an item's state. |
-| `isRuleActive(ruleUid)`    | Checks if the rule is active.                                                                 |
-| `isRuleDisabled(ruleUid)`  | Checks if the rule is disabled.                                                               |
-| `isRuleRunning(ruleUid)`   | Checks if the rule is currently running.                                                      |
-| `isRuleIdle(ruleUid)`      | Checks if the rule is in the IDLE state.                                                      |
-| `getRuleStatus(ruleUid)`   | Retrieves detailed status information about a rule.                                           |
+| **Method**                         | **Description**                                                                                                    | **Parameters**                                                                                                          | **Return Value**                               |
+|-------------------------------------|--------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|------------------------------------------------|
+| `__init__(self, connector: OpenHABConnector)` | Initializes the `RuleTester` with the provided OpenHAB connector.                                                   | `connector` (OpenHABConnector): The OpenHAB connector used to interact with the OpenHAB server.                           | None                                           |
+| `runRule(self, ruleUid: str)`       | Executes a rule immediately.                                                                                        | `ruleUid` (str): The UID of the rule to be executed.                                                                     | `bool`: `True` if the rule was executed successfully, `False` otherwise. |
+| `enableRule(self, ruleUid: str)`    | Enables a rule by sending a POST request to the server.                                                             | `ruleUid` (str): The UID of the rule to be enabled.                                                                      | `bool`: `True` if the rule was successfully enabled, `False` otherwise. |
+| `disableRule(self, ruleUid: str)`   | Disables a rule by sending a POST request to the server.                                                            | `ruleUid` (str): The UID of the rule to be disabled.                                                                     | `bool`: `True` if the rule was successfully disabled, `False` otherwise. |
+| `testRuleExecution(self, ruleUid: str, expectedItem: str, expectedValue: str)` | Tests the execution of a rule and verifies the expected outcome on a specific item.                                  | `ruleUid` (str): The UID of the rule to be tested.<br>`expectedItem` (str): The item to check after rule execution.<br>`expectedValue` (str): The expected value of the item. | `bool`: `True` if the item state matches the expected value, `False` otherwise. |
+| `isRuleActive(self, ruleUid: str)`  | Checks if the rule is active by retrieving its status from the server.                                               | `ruleUid` (str): The UID of the rule to check.                                                                            | `bool`: `True` if the rule is active, `False` otherwise. |
+| `isRuleDisabled(self, ruleUid: str)` | Checks if the rule is disabled by retrieving its status from the server.                                            | `ruleUid` (str): The UID of the rule to check.                                                                            | `bool`: `True` if the rule is disabled, `False` otherwise. |
+| `isRuleRunning(self, ruleUid: str)` | Checks if the rule is currently running by checking its status.                                                     | `ruleUid` (str): The UID of the rule to check.                                                                            | `bool`: `True` if the rule is running, `False` otherwise. |
+| `isRuleIdle(self, ruleUid: str)`    | Checks if the rule is in the IDLE state by checking its status.                                                     | `ruleUid` (str): The UID of the rule to check.                                                                            | `bool`: `True` if the rule is idle, `False` otherwise. |
+| `getRuleStatus(self, ruleUid: str)` | Retrieves the full status of a rule, including detailed information.                                                | `ruleUid` (str): The UID of the rule to check.                                                                            | `dict`: A dictionary containing the rule's status details. |
 
 ---
 

@@ -81,7 +81,6 @@ class ItemTester:
         if checkState == state:
             return True
 
-        print(f"Error: The state of {itemName} is {checkState}, expected {state}.")
         return False
 
     def testColor(self, itemName: str, command: str, expectedState = None, timeout: int = 60):
@@ -98,8 +97,12 @@ class ItemTester:
             print(f"Test failed: {itemName} is not of type 'Color'.")
             return False
 
-        if not self.__crud._CRUD__checkColorValue(command):
-            return False
+        if isinstance(command, (list, set)):
+            if not any(self.__crud._CRUD__checkColorValue(cmd) for cmd in command):
+                return False
+        else:
+            if not self.__crud._CRUD__checkColorValue(command):
+                return False
 
         return self.__testItem(itemName, "Color", command, expectedState, timeout)
 
@@ -196,6 +199,13 @@ class ItemTester:
         if not self.__crud._CRUD__checkLocationValue(update):
             return False
 
+        if isinstance(uodate, (list, set)):
+            if not any(self.__crud._CRUD__checkLocationValue(updt) for updt in update):
+                return False
+        else:
+            if not self.__crud._CRUD__ch_CRUD__checkLocationValueeckStringValue(update):
+                return False
+
         return self.__testItem(itemName, "Location", update, expectedState, timeout)
 
     def testNumber(self, itemName: str, command, expectedState = None, timeout: int = 60):
@@ -255,7 +265,7 @@ class ItemTester:
 
         return self.__testItem(itemName, "Rollershutter", command, expectedState, timeout)
 
-    def testString(self, itemName: str, command: str, expectedState = None, timeout: int = 60):
+    def testString(self, itemName: str, command, expectedState = None, timeout: int = 60):
         """
         Tests the functionality of a String item by sending a command and verifying the expected state.
 
@@ -269,8 +279,12 @@ class ItemTester:
             print(f"Test failed: {itemName} is not of type 'String'.")
             return False
 
-        if not self.__crud._CRUD__checkStringValue(command):
-            return False
+        #if isinstance(command, (list, set)):
+        #    if not any(self.__crud._CRUD__checkStringValue(cmd) for cmd in command):
+        #        return False
+        #else:
+        #    if not self.__crud._CRUD__checkStringValue(command):
+        #        return False
 
         return self.__testItem(itemName, "String", command, expectedState, timeout)
 
@@ -293,99 +307,126 @@ class ItemTester:
 
         return self.__testItem(itemName, "Switch", command, expectedState, timeout)
 
-    def __testItem(self, itemName: str, itemType: str, commandOrUpdate, expectedState=None, timeout: int = 60):
+    def __testItem(self, itemName: str, itemType: str, commandOrUpdate=None, expectedState=None, timeout: int = 60):
         """
         Generic test function for validating the behavior of an item.
-        
+
         :param itemName: The name of the item to test.
         :param itemType: The type of the item.
-        :param commandOrUpdate: The command or update to send to the item.
+        :param commandOrUpdate: The command or update to send to the item (optional).
         :param expectedState: The expected state after the command/update, optional.
+                            Can be a single value or a list/set of possible states.
         :param timeout: The timeout period for the test in seconds.
         :return: True if the test passes, otherwise False.
         """
+        initialState = None
+        returnValue = False
         try:
-            # Initial state retrieval
+            # Retrieve the initial state if a command/update is to be sent
             initialState = self.__crud.getState(itemName) if commandOrUpdate is not None else None
-            
-            if initialState is None:
+            if initialState is None and commandOrUpdate is not None:
                 print(f"Warning: Could not retrieve initial state for item {itemName}.")
-            
-            # Open SSE connection for state changes before sending the command
+
+            # Open SSE connection to listen for state changes before sending the command/update
             response = self.__itemEvent.ItemStateChangedEvent(itemName)
             if response is None:
-                print(f"Error: No response received for item {itemName}.")
+                print(f"Error: No SSE response received for item {itemName}.")
                 return False
-            
+
             state = None
             startTime = time.time()
 
             # Start processing SSE events
             with response as events:
-                # Now send the command or update to the item
-                if itemType in ["Contact", "Location"]:
-                    self.__crud.postUpdate(itemName, str(commandOrUpdate))
-                else:
-                    self.__crud.sendCommand(itemName, commandOrUpdate)
+                # Send the command/update if provided
+                if commandOrUpdate is not None:
+                    if itemType in ["Contact", "Location"]:
+                        self.__crud.postUpdate(itemName, str(commandOrUpdate))
+                    else:
+                        self.__crud.sendCommand(itemName, commandOrUpdate)
 
-                while True:  # Endlessly loop to capture events
-                    # Timeout check: Check if the timeout has been exceeded
-                    if time.time() - startTime > timeout:
-                        print(f"Timeout reached after {timeout} seconds. Falling back to getState().")
-                        # Instead of manually checking the state, use checkItemHasState
-                        if not self.checkItemHasState(itemName, expectedState):
-                            print(f"Error: After timeout, state of {itemName} is not {expectedState}.")
-                            return False
-                        break  # Exit the event listening loop if timeout is reached
-
-                    for line in events.iter_lines():
-                        line = line.decode()
-
-                        # Timeout check: Check if the timeout has been exceeded
+                    while True:
+                        # Check if timeout has been reached
                         if time.time() - startTime > timeout:
                             print(f"Timeout reached after {timeout} seconds. Falling back to getState().")
-                            # Use checkItemHasState
-                            if not self.checkItemHasState(itemName, expectedState):
-                                print(f"Error: After timeout, state of {itemName} is not {expectedState}.")
-                                return False
-                            break  # Exit the event listening loop if timeout is reached
+                            break
 
-                        if "data" in line:
-                            line = line.replace("data: ", "")
-                            try:
-                                # Parse the event data
-                                data = json.loads(line)
-                                payload = data.get("payload")
-                                event_type = data.get("type")
+                        # Process SSE events
+                        for line in events.iter_lines():
+                            line = line.decode()
+                            if "data" in line:
+                                line = line.replace("data: ", "")
+                                try:
+                                    # Parse the event data
+                                    data = json.loads(line)
+                                    payload = data.get("payload")
+                                    event_type = data.get("type")
 
-                                # Only process ItemStateChangedEvent
-                                if event_type == "ItemStateChangedEvent" and payload:
-                                    payload_data = json.loads(payload)
-                                    state = payload_data.get("value")
+                                    # Only process ItemStateChangedEvent
+                                    if event_type == "ItemStateChangedEvent" and payload:
+                                        payload_data = json.loads(payload)
+                                        state = payload_data.get("value")
 
-                                    # Check if the received state matches the expected state
-                                    if state == expectedState:
-                                        return True  # If the state matches, exit the function and return True
-                                    break
-                                break
-
-                            except json.JSONDecodeError:
-                                print("Warning: Event could not be converted to JSON.")
-
-            # After timeout, check the state using checkItemHasState
-            if not self.checkItemHasState(itemName, expectedState):
-                print(f"Error: After timeout, state of {itemName} is not {expectedState}.")
-                return False
-
-            # Reset item to initial state if necessary
-            if initialState is not None:
-                if itemType in ["Contact", "Location"]:
-                    self.__crud.postUpdate(itemName, initialState)
+                                        # Check if the received state matches the expected state
+                                        if not isinstance(expectedState, (list, set)):
+                                            if state == expectedState:
+                                                returnValue = True
+                                                return returnValue
+                                        else:
+                                            if state in expectedState:
+                                                print(f"Success: {itemName} reached one of the expected states: {state}")
+                                                returnValue = True
+                                                return returnValue
+                                except json.JSONDecodeError:
+                                    print("Warning: Event could not be converted to JSON.")
                 else:
-                    self.__crud.sendCommand(itemName, initialState)
-
-            return True
+                    # Fallback check: Verify final state after timeout
+                    if not self.__check_final_state(itemName, expectedState):
+                        print(f"Error: After fallback, state of {itemName} is not in {expectedState}.")
+                        returnValue = False
+                    else:
+                        returnValue = True
 
         except Exception as e:
             print(f"Error testing {itemName}: {e}")
-            return False
+            returnValue = False
+
+        finally:
+            # Ensure the item is reset to its initial state
+            self.__reset_item(itemName, itemType, initialState)
+
+        return returnValue
+
+    def __reset_item(self, itemName: str, itemType: str, initialState):
+        """
+        Resets the item to initial state if necessary.
+
+        :param itemName: The name of the Switch item.
+        :param itemType: The type of the item.
+        :param initialState: The initial state to send to the item.
+        """
+        if initialState is not None:
+            if itemType in ["Contact", "Location"]:
+                self.__crud.postUpdate(itemName, initialState)
+            else:
+                self.__crud.sendCommand(itemName, initialState)
+
+    def __check_final_state(self, itemName: str, expectedState):
+        """
+        Checks the final state other processing an command/update
+
+        :param itemName: The name of the Switch item.
+        :param expectedState: The expected state after the command/update, optional.
+                            Can be a single value or a list/set of possible states.
+        :return: True if the item has the expected state, otherwise False.
+        """
+        if not isinstance(expectedState, (list, set)):
+            if not self.checkItemHasState(itemName, expectedState):
+                print(f"Error: After fallback, state of {itemName} is not {expectedState}.")
+                return False
+        else:
+            if not any(self.checkItemHasState(itemName, expected) for expected in expectedState):
+                print(f"Error: After fallback, state of {itemName} is not in {expectedState}.")
+                return False
+
+        return True
