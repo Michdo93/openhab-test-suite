@@ -1,2 +1,1 @@
-python-openhab-crud
-python-openhab-itemevents
+python-openhab-rest-client

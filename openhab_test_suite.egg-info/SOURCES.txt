@@ -2,7 +2,6 @@ LICENSE
 README.md
 setup.py
 openhab_test_suite/ItemTester.py
-openhab_test_suite/OpenHABConnector.py
 openhab_test_suite/RuleTester.py
 openhab_test_suite/ThingTester.py
 openhab_test_suite/__init__.py

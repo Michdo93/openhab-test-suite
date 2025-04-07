@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: openhab-test-suite
-Version: 1.0.0
+Version: 2.0.0
 Summary: A comprehensive testing library for validating and interacting with openHAB installations.
 Home-page: https://github.com/Michdo93/openhab-test-suite
 Author: Michael Christian Dörflinger
@@ -11,11 +11,10 @@ Classifier: Operating System :: OS Independent
 Requires-Python: >=3.7
 Description-Content-Type: text/markdown
 License-File: LICENSE
-Requires-Dist: python-openhab-crud
-Requires-Dist: python-openhab-itemevents
+Requires-Dist: python-openhab-rest-client
 
 # **openhab-test-suite**  
-A comprehensive testing library for validating and interacting with openHAB installations.  
+A comprehensive testing library for validating and interacting with openHAB installations.
 
 **openhab-test-suite** simplifies the process of testing items, rules, and things in openHAB systems. The library provides an easy-to-use Python API that interacts with the openHAB REST API, enabling automated testing of various components in your smart home environment.  
 
@@ -57,7 +56,7 @@ pip install openhab-test-suite
 
 1. Clone the repository:  
    ```bash
-   git clone https://github.com/your-repo/openhab-test-suite.git
+   git clone https://github.com/Michdo93/openhab-test-suite.git
    cd openhab-test-suite
    ```
 
@@ -74,11 +73,11 @@ pip install openhab-test-suite
 
 Here is an example of how to use the library for basic operations:  
 
-### Initialize the Connector  
+### Initialize the Client  
 ```python
-from openhab_test_suite import OpenHABConnector
+from openhab import OpenHABClient
 
-connector = OpenHABConnector(
+client = OpenHABClient(
     url="http://openhab-server:8080",
     username="your-username",
     password="your-password"
@@ -89,7 +88,7 @@ connector = OpenHABConnector(
 ```python
 from openhab_test_suite import ThingTester
 
-thingTester = ThingTester(connector)
+thingTester = ThingTester(client)
 
 # Check if a thing is ONLINE
 isOnline = thingTester.isThingOnline("LightSwitch1")
@@ -100,7 +99,7 @@ print(f"LightSwitch1 online status: {isOnline}")
 ```python
 from openhab_test_suite import RuleTester
 
-ruleTester = RuleTester(connector)
+ruleTester = RuleTester(client)
 
 # Run a rule and verify the result
 ruleTester.runRule("myRuleUID")
@@ -110,7 +109,7 @@ ruleTester.runRule("myRuleUID")
 ```python
 from openhab_test_suite import ItemTester
 
-itemTester = ItemTester(connector)
+itemTester = ItemTester(client)
 itemName = "testSwithc"
 
 # Check if an item could reach expected state
@@ -121,27 +120,12 @@ print(f"{itemName}: ", tester.testSwitch(itemName=itemName, command="ON", expect
 
 ## **Full List of Methods**
 
-### **OpenHABConnector**  
-Handles communication with the openHAB REST API.
-
-| **Method**                              | **Description**                                                                                                         | **Parameters**                                                                                                                | **Return Value**                                 |
-|-----------------------------------------|-------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------|
-| `__init__(self, url, username=None, password=None)` | Initializes the OpenHABConnector instance and establishes a connection to the server.                                    | `url` (str): Base URL of the OpenHAB server<br>`username` (str, optional): Username for authentication<br>`password` (str, optional): Password | None                                             |
-| `__login(self)`                         | Logs into the OpenHAB server and checks the connection.                                                                  | None                                                                                                                          | None                                             |
-| `__executeRequest(self, header=None, resourcePath=None, method=None, data=None)` | Executes an HTTP request to the OpenHAB server (internal method).                                                        | `header` (dict, optional): HTTP headers<br>`resourcePath` (str): API resource path<br>`method` (str): HTTP method<br>`data` (optional): Data to send | JSON or Text                                    |
-| `get(self, endpoint, header=None)`      | Sends a GET request to the OpenHAB server.                                                                               | `endpoint` (str): Target endpoint<br>`header` (dict, optional): HTTP headers                                                 | JSON or Text                                    |
-| `post(self, endpoint, header=None, data=None)` | Sends a POST request to the OpenHAB server.                                                                             | `endpoint` (str): Target endpoint<br>`header` (dict, optional): HTTP headers<br>`data` (optional): Data to send              | Response of the request                         |
-| `put(self, endpoint, header=None, data=None)`  | Sends a PUT request to the OpenHAB server.                                                                              | `endpoint` (str): Target endpoint<br>`header` (dict, optional): HTTP headers<br>`data` (optional): Data to send              | Response of the request                         |
-| `delete(self, endpoint, header=None, data=None)` | Sends a DELETE request to the OpenHAB server.                                                                           | `endpoint` (str): Target endpoint<br>`header` (dict, optional): HTTP headers<br>`data` (optional): Data to send              | Response of the request                         |
-
----
-
 ### **ItemTester**  
 Provides methods to test and validate openHAB items.
 
 | **Method**             | **Parameters**                                                                                                                   | **Return Value**         | **Description**                                                                                                                                         |
 |-------------------------|-----------------------------------------------------------------------------------------------------------------------------------|--------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `__init__`             | `connector: OpenHABConnector`                                                                                                    | None                     | Initializes the `ItemTester` class with an OpenHAB connector.                                                                                           |
+| `__init__`             | `client: OpenHABClient`                                                                                                    | None                     | Initializes the `ItemTester` class with an OpenHAB client.                                                                                           |
 | `doesItemExist`        | `itemName: str`                                                                                                                  | `True`/`False`           | Checks whether an item exists in the OpenHAB system.                                                                                                    |
 | `checkItemIsType`      | `itemName: str`, `itemType: str`                                                                                                 | `True`/`False`           | Checks if an item has the expected type.                                                                                                                |
 | `checkItemHasState`    | `itemName: str`, `state`                                                                                                         | `True`/`False`           | Verifies whether an item has a specific state.                                                                                                          |
@@ -167,7 +151,7 @@ Provides methods to test and validate openHAB things.
 
 | **Method**                         | **Description**                                                                                                    | **Parameters**                                                                                                          | **Return Value**                               |
 |-------------------------------------|--------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|------------------------------------------------|
-| `__init__(self, connector: OpenHABConnector)` | Initializes the `ThingTester` with the provided OpenHAB connector.                                                   | `connector` (OpenHABConnector): The OpenHAB connector used to interact with the OpenHAB server.                           | None                                           |
+| `__init__(self, client: OpenHABClient)` | Initializes the `ThingTester` with the provided OpenHAB client.                                                   | `client` (OpenHABClient): The OpenHAB client used to interact with the OpenHAB server.                           | None                                           |
 | `_getThingStatus(self, thingUid: str)` | Retrieves the status of a Thing based on its unique identifier (UID).                                                | `thingUid` (str): The unique identifier (UID) of the Thing.                                                              | `str`: The status of the Thing (e.g., "ONLINE", "OFFLINE", "UNKNOWN"). |
 | `isThingStatus(self, thingUid: str, statusToCheck: str)` | Checks if a Thing has the specified status.                                                                        | `thingUid` (str): The unique identifier (UID) of the Thing.<br> `statusToCheck` (str): The status to check (e.g., "ONLINE", "OFFLINE"). | `bool`: `True` if the Thing matches the status, `False` otherwise. |
 | `isThingOnline(self, thingUid: str)` | Checks if a Thing is in the ONLINE status.                                                                          | `thingUid` (str): The unique identifier (UID) of the Thing.                                                               | `bool`: `True` if the Thing is ONLINE, `False` otherwise. |
@@ -186,7 +170,7 @@ Provides methods to manage and test openHAB rules.
 
 | **Method**                         | **Description**                                                                                                    | **Parameters**                                                                                                          | **Return Value**                               |
 |-------------------------------------|--------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|------------------------------------------------|
-| `__init__(self, connector: OpenHABConnector)` | Initializes the `RuleTester` with the provided OpenHAB connector.                                                   | `connector` (OpenHABConnector): The OpenHAB connector used to interact with the OpenHAB server.                           | None                                           |
+| `__init__(self, client: OpenHABClient)` | Initializes the `RuleTester` with the provided OpenHAB client.                                                   | `client` (OpenHABClient): The OpenHAB client used to interact with the OpenHAB server.                           | None                                           |
 | `runRule(self, ruleUid: str)`       | Executes a rule immediately.                                                                                        | `ruleUid` (str): The UID of the rule to be executed.                                                                     | `bool`: `True` if the rule was executed successfully, `False` otherwise. |
 | `enableRule(self, ruleUid: str)`    | Enables a rule by sending a POST request to the server.                                                             | `ruleUid` (str): The UID of the rule to be enabled.                                                                      | `bool`: `True` if the rule was successfully enabled, `False` otherwise. |
 | `disableRule(self, ruleUid: str)`   | Disables a rule by sending a POST request to the server.                                                            | `ruleUid` (str): The UID of the rule to be disabled.                                                                     | `bool`: `True` if the rule was successfully disabled, `False` otherwise. |

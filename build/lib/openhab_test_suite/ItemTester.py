@@ -1,19 +1,17 @@
 import time
-from .OpenHABConnector import OpenHABConnector
 import json
-from openhab import CRUD
-from openhab import ItemEvent
+from openhab import OpenHABClient, Items, ItemEvents
 
 class ItemTester:
-    def __init__(self, connector: OpenHABConnector):
+    def __init__(self, client: OpenHABClient):
         """
-        Initializes the ItemTester with an OpenHAB connector.
+        Initializes the ItemTester with an OpenHAB client.
 
-        :param connector: The OpenHABConnector instance used to communicate with the OpenHAB system.
+        :param client: The OpenHABClient instance used to communicate with the OpenHAB system.
         """
-        self.connector = connector
-        self.__crud = CRUD(self.connector.url, self.connector.username, self.connector.password)
-        self.__itemEvent = ItemEvent(self.connector.url, self.connector.username, self.connector.password)
+        self.client = client
+        self.itemsAPI = Items(client)
+        self.itemEventsAPI = ItemEvents(client)
 
     def doesItemExist(self, itemName: str):
         """
@@ -22,7 +20,7 @@ class ItemTester:
         :param itemName: The name of the item to check.
         :return: True if the item exists, otherwise False.
         """
-        testItem = self.__crud.read(itemName)
+        testItem = self.itemsAPI.getItem(itemName)
         if testItem and testItem.get("name") == itemName:
             return True
         print(f"Error: The item {itemName} does not exist!")
@@ -44,7 +42,7 @@ class ItemTester:
 
         try:
             # Abruf der Item-Daten
-            testItem = self.__crud.read(itemName)
+            testItem = self.itemsAPI.getItem(itemName)
             if testItem is None:
                 print(f"Error: The item '{itemName}' could not be found. Received None.")
                 return False
@@ -55,7 +53,7 @@ class ItemTester:
             print(testItem.get("type"))
             print(itemType)
 
-            # Überprüfung des Item-Typs
+            # Überprüfung des Item-Typslinux
             if testItem.get("type") == itemType:
                 return True
 
@@ -73,17 +71,18 @@ class ItemTester:
         :param state: The expected state of the item.
         :return: True if the item has the expected state, otherwise False.
         """
-        checkState = self.__crud.getState(itemName)
+        checkState = self.itemsAPI.getItemState(itemName)
         if checkState is None:
             print(f"Error: Could not retrieve the state for item {itemName}.")
             return False
 
+        #print(f"Current state of item '{itemName}': {checkState}")
         if checkState == state:
             return True
 
         return False
 
-    def testColor(self, itemName: str, command: str, expectedState = None, timeout: int = 60):
+    def testColor(self, itemName: str, command: str, expectedState = None, timeout: int = 10):
         """
         Tests the functionality of a Color item by sending a command and verifying the expected state.
 
@@ -97,16 +96,16 @@ class ItemTester:
             print(f"Test failed: {itemName} is not of type 'Color'.")
             return False
 
-        if isinstance(command, (list, set)):
-            if not any(self.__crud._CRUD__checkColorValue(cmd) for cmd in command):
-                return False
-        else:
-            if not self.__crud._CRUD__checkColorValue(command):
-                return False
+        #if isinstance(command, (list, set)):
+        #    if not any(self.__crud._CRUD__checkColorValue(cmd) for cmd in command):
+        #        return False
+        #else:
+        #    if not self.__crud._CRUD__checkColorValue(command):
+        #        return False
 
         return self.__testItem(itemName, "Color", command, expectedState, timeout)
 
-    def testContact(self, itemName: str, update: str = None, expectedState: str = None, timeout: int = 60):
+    def testContact(self, itemName: str, update: str = None, expectedState: str = None, timeout: int = 10):
         """
         Tests the functionality of a Contact item.
 
@@ -125,7 +124,7 @@ class ItemTester:
 
         return self.__testItem(itemName, "Contact", update, expectedState, timeout)
 
-    def testDateTime(self, itemName: str, command: str, expectedState = None, timeout: int = 60):
+    def testDateTime(self, itemName: str, command: str, expectedState = None, timeout: int = 10):
         """
         Tests the functionality of a DateTime item by sending a command and verifying the expected state.
 
@@ -144,7 +143,7 @@ class ItemTester:
 
         return self.__testItem(itemName, "DateTime", command, expectedState, timeout)
 
-    def testDimmer(self, itemName: str, command: str, expectedState = None, timeout: int = 60):
+    def testDimmer(self, itemName: str, command: str, expectedState = None, timeout: int = 10):
         """
         Tests the functionality of a Dimmer item by sending a command and verifying the expected state.
 
@@ -158,12 +157,12 @@ class ItemTester:
             print(f"Test failed: {itemName} is not of type 'Dimmer'.")
             return False
 
-        if not self.__crud._CRUD__checkDimmerValue(command):
-            return False
+        #if not self.__crud._CRUD__checkDimmerValue(command):
+        #    return False
 
         return self.__testItem(itemName, "Dimmer", str(command), str(expectedState), timeout)
 
-    def testImage(self, itemName: str, command: str, expectedState = None, timeout: int = 60):
+    def testImage(self, itemName: str, command: str, expectedState = None, timeout: int = 10):
         """
         Tests the functionality of a Image item by sending a command and verifying the expected state.
 
@@ -177,12 +176,12 @@ class ItemTester:
             print(f"Test failed: {itemName} is not of type 'Image'.")
             return False
 
-        if not self.__crud._CRUD__checkImageValue(command):
-            return False
+        #if not self.__crud._CRUD__checkImageValue(command):
+        #    return False
 
         return self.__testItem(itemName, "Image", command, expectedState, timeout)
 
-    def testLocation(self, itemName: str, update: str, expectedState = None, timeout: int = 60):
+    def testLocation(self, itemName: str, update: str, expectedState = None, timeout: int = 10):
         """
         Tests the functionality of a Location item.
 
@@ -196,19 +195,19 @@ class ItemTester:
             print(f"Test failed: {itemName} is not of type 'Location'.")
             return False
 
-        if not self.__crud._CRUD__checkLocationValue(update):
-            return False
+        #if not self.__crud._CRUD__checkLocationValue(update):
+        #    return False
 
-        if isinstance(uodate, (list, set)):
-            if not any(self.__crud._CRUD__checkLocationValue(updt) for updt in update):
-                return False
-        else:
-            if not self.__crud._CRUD__ch_CRUD__checkLocationValueeckStringValue(update):
-                return False
+        #if isinstance(update, (list, set)):
+        #    if not any(self.__crud._CRUD__checkLocationValue(updt) for updt in update):
+        #        return False
+        #else:
+        #    if not self.__crud._CRUD__ch_CRUD__checkLocationValueeckStringValue(update):
+        #        return False
 
         return self.__testItem(itemName, "Location", update, expectedState, timeout)
 
-    def testNumber(self, itemName: str, command, expectedState = None, timeout: int = 60):
+    def testNumber(self, itemName: str, command, expectedState = None, timeout: int = 10):
         """
         Tests the functionality of a Number item by sending a command and verifying the expected state.
 
@@ -222,12 +221,12 @@ class ItemTester:
             print(f"Test failed: {itemName} is not of type 'Number'.")
             return False
 
-        if not self.__crud._CRUD__checkNumberValue(command):
-            return False
+        #if not self.__crud._CRUD__checkNumberValue(command):
+        #    return False
 
         return self.__testItem(itemName, "Number", str(command), str(expectedState), timeout)
 
-    def testPlayer(self, itemName: str, command: str, expectedState = None, timeout: int = 60):
+    def testPlayer(self, itemName: str, command: str, expectedState = None, timeout: int = 10):
         """
         Tests the functionality of a Player item by sending a command and verifying the expected state.
 
@@ -237,16 +236,16 @@ class ItemTester:
         :param timeout: The timeout period for the test in seconds.
         :return: True if the test passes, otherwise False.
         """
-        if not self.checkItemIsType(itemName, "Player"):
-            print(f"Test failed: {itemName} is not of type 'Player'.")
-            return False
+        #if not self.checkItemIsType(itemName, "Player"):
+        #    print(f"Test failed: {itemName} is not of type 'Player'.")
+        #    return False
 
-        if not self.__crud._CRUD__checkPlayerValue(command):
-            return False
+        #if not self.__crud._CRUD__checkPlayerValue(command):
+        #    return False
         
         return self.__testItem(itemName, "Player", command, expectedState, timeout)
 
-    def testRollershutter(self, itemName: str, command: str, expectedState = None, timeout: int = 60):
+    def testRollershutter(self, itemName: str, command: str, expectedState = None, timeout: int = 10):
         """
         Tests the functionality of a Rollershutter item by sending a command and verifying the expected state.
 
@@ -260,12 +259,12 @@ class ItemTester:
             print(f"Test failed: {itemName} is not of type 'Rollershutter'.")
             return False
 
-        if not self.__crud._CRUD__checkRollershutterValue(command):
-            return False
+        #if not self.__crud._CRUD__checkRollershutterValue(command):
+        #    return False
 
         return self.__testItem(itemName, "Rollershutter", command, expectedState, timeout)
 
-    def testString(self, itemName: str, command, expectedState = None, timeout: int = 60):
+    def testString(self, itemName: str, command, expectedState = None, timeout: int = 10):
         """
         Tests the functionality of a String item by sending a command and verifying the expected state.
 
@@ -288,7 +287,7 @@ class ItemTester:
 
         return self.__testItem(itemName, "String", command, expectedState, timeout)
 
-    def testSwitch(self, itemName: str, command: str, expectedState = None, timeout: int = 60):
+    def testSwitch(self, itemName: str, command: str, expectedState = None, timeout: int = 10):
         """
         Tests the functionality of a Switch item by sending a command and verifying the expected state.
 
@@ -302,13 +301,13 @@ class ItemTester:
             print(f"Test failed: {itemName} is not of type 'Switch'.")
             return False
 
-        if not self.__crud._CRUD__checkSwitchValue(command):
-            return False
+        #if not self.__crud._CRUD__checkSwitchValue(command):
+        #    return False
 
         return self.__testItem(itemName, "Switch", command, expectedState, timeout)
-
-    def __testItem(self, itemName: str, itemType: str, commandOrUpdate=None, expectedState=None, timeout: int = 60):
-        """
+    """
+    def __testItem(self, itemName: str, itemType: str, commandOrUpdate=None, expectedState=None, timeout: int = 10):
+        
         Generic test function for validating the behavior of an item.
 
         :param itemName: The name of the item to test.
@@ -318,17 +317,17 @@ class ItemTester:
                             Can be a single value or a list/set of possible states.
         :param timeout: The timeout period for the test in seconds.
         :return: True if the test passes, otherwise False.
-        """
+        
         initialState = None
         returnValue = False
         try:
             # Retrieve the initial state if a command/update is to be sent
-            initialState = self.__crud.getState(itemName) if commandOrUpdate is not None else None
+            initialState = self.itemsAPI.getItemState(itemName) if commandOrUpdate is not None else None
             if initialState is None and commandOrUpdate is not None:
                 print(f"Warning: Could not retrieve initial state for item {itemName}.")
 
             # Open SSE connection to listen for state changes before sending the command/update
-            response = self.__itemEvent.ItemStateChangedEvent(itemName)
+            response = self.itemEventsAPI.ItemStateChangedEvent(itemName)
             if response is None:
                 print(f"Error: No SSE response received for item {itemName}.")
                 return False
@@ -341,9 +340,9 @@ class ItemTester:
                 # Send the command/update if provided
                 if commandOrUpdate is not None:
                     if itemType in ["Contact", "Location"]:
-                        self.__crud.postUpdate(itemName, str(commandOrUpdate))
+                        self.itemsAPI.postUpdate(itemName, str(commandOrUpdate))
                     else:
-                        self.__crud.sendCommand(itemName, commandOrUpdate)
+                        self.itemsAPI.sendCommand(itemName, commandOrUpdate)
 
                     while True:
                         # Check if timeout has been reached
@@ -360,12 +359,12 @@ class ItemTester:
                                     # Parse the event data
                                     data = json.loads(line)
                                     payload = data.get("payload")
-                                    event_type = data.get("type")
+                                    eventType = data.get("type")
 
                                     # Only process ItemStateChangedEvent
-                                    if event_type == "ItemStateChangedEvent" and payload:
-                                        payload_data = json.loads(payload)
-                                        state = payload_data.get("value")
+                                    if eventType == "ItemStateChangedEvent" and payload:
+                                        payloadData = json.loads(payload)
+                                        state = payloadData.get("value")
 
                                         # Check if the received state matches the expected state
                                         if not isinstance(expectedState, (list, set)):
@@ -381,7 +380,7 @@ class ItemTester:
                                     print("Warning: Event could not be converted to JSON.")
                 else:
                     # Fallback check: Verify final state after timeout
-                    if not self.__check_final_state(itemName, expectedState):
+                    if not self.__checkFinalState(itemName, expectedState):
                         print(f"Error: After fallback, state of {itemName} is not in {expectedState}.")
                         returnValue = False
                     else:
@@ -393,11 +392,97 @@ class ItemTester:
 
         finally:
             # Ensure the item is reset to its initial state
-            self.__reset_item(itemName, itemType, initialState)
+            self.__resetItem(itemName, itemType, initialState)
+
+        return returnValue
+    """
+
+    def __testItem(self, itemName: str, itemType: str, commandOrUpdate=None, expectedState=None, timeout: int = 10):
+        """
+        Generic test function for validating the behavior of an item.
+
+        :param itemName: The name of the item to test.
+        :param itemType: The type of the item.
+        :param commandOrUpdate: The command or update to send to the item (optional).
+        :param expectedState: The expected state after the command/update, optional.
+                            Can be a single value or a list/set of possible states.
+        :param timeout: The timeout period for the test in seconds.
+        :return: True if the test passes, otherwise False.
+        """
+        initialState = None
+        returnValue = False
+        try:
+            # Retrieve the initial state
+            initialState = self.itemsAPI.getItemState(itemName) if commandOrUpdate is not None else None
+            if initialState is None and commandOrUpdate is not None:
+                print(f"Warning: Could not retrieve initial state for item {itemName}.")
+
+            # Start SSE listener before sending the command
+            response = self.itemEventsAPI.ItemStateChangedEvent(itemName)
+            if response is None:
+                print(f"Error: No SSE response received for item {itemName}.")
+                return False
+
+            state = None
+            startTime = time.time()
+
+            with response as events:
+                # Send the command/update
+                if commandOrUpdate is not None:
+                    if itemType in ["Contact", "Location"]:
+                        self.itemsAPI.postUpdate(itemName, str(commandOrUpdate))
+                    else:
+                        self.itemsAPI.sendCommand(itemName, commandOrUpdate)
+
+                    # Iterate through the events
+                    lines = events.iter_lines()
+                    while time.time() - startTime > timeout:
+                        line = next(lines, None)
+                        if line is None:
+                            # No event, continue to next iteration
+                            continue
+
+                        line = line.decode()
+                        if "data" not in line:
+                            continue
+
+                        try:
+                            data = json.loads(line.replace("data: ", ""))
+                            payload = data.get("payload")
+                            eventType = data.get("type")
+
+                            if eventType == "ItemStateChangedEvent" and payload:
+                                payloadData = json.loads(payload)
+                                state = payloadData.get("value")
+
+                                if not isinstance(expectedState, (list, set)):
+                                    if state == expectedState:
+                                        return True
+                                else:
+                                    if state in expectedState:
+                                        print(f"Success: {itemName} reached one of the expected states: {state}")
+                                        return True
+
+                        except json.JSONDecodeError:
+                            print("Warning: Event could not be converted to JSON.")
+
+                # Timeout reached or no matching event found, fallback to checking the final state
+                if not self.__checkFinalState(itemName, expectedState):
+                    returnValue = False
+                else:
+                    returnValue = True
+
+        except Exception as e:
+            print(f"Error testing {itemName}: {e}")
+            returnValue = False
+
+        finally:
+            # Reset item to original state if needed
+            self.__resetItem(itemName, itemType, initialState)
 
         return returnValue
 
-    def __reset_item(self, itemName: str, itemType: str, initialState):
+    def __resetItem(self, itemName: str, itemType: str, initialState):
         """
         Resets the item to initial state if necessary.
 
@@ -407,11 +492,11 @@ class ItemTester:
         """
         if initialState is not None:
             if itemType in ["Contact", "Location"]:
-                self.__crud.postUpdate(itemName, initialState)
+                self.itemsAPI.postUpdate(itemName, initialState)
             else:
-                self.__crud.sendCommand(itemName, initialState)
+                self.itemsAPI.sendCommand(itemName, initialState)
 
-    def __check_final_state(self, itemName: str, expectedState):
+    def __checkFinalState(self, itemName: str, expectedState):
         """
         Checks the final state other processing an command/update
 

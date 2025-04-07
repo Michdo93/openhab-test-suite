@@ -1,12 +1,12 @@
+from openhab_test_suite import RuleTester
+from openhab import OpenHABClient
 import time
-from openhab_test_suite import OpenHABConnector, RuleTester
-
 
 # Establishing connection to the OpenHAB API
-connector = OpenHABConnector("http://127.0.0.1:8080", "openhab", "habopen")
+client = OpenHABClient("http://127.0.0.1:8080", "openhab", "habopen")
 
 # Instantiating the RuleTester
-ruleTester = RuleTester(connector)
+ruleTester = RuleTester(client)
 
 # Example: Testing the functions of the RuleTester
 ruleUid = "test_color-1"  # Replace this with the actual rule UID

@@ -1,12 +1,11 @@
-# test_thingTester.py
-import time
-from openhab_test_suite import OpenHABConnector, ThingTester
+from openhab_test_suite import ThingTester
+from openhab import OpenHABClient
 
 # Here we establish the connection to the OpenHAB API
-connector = OpenHABConnector("http://127.0.0.1:8080", "openhab", "habopen")
+client = OpenHABClient("http://127.0.0.1:8080", "openhab", "habopen")
 
 # Instantiation of the ThingTester
-thingTester = ThingTester(connector)
+thingTester = ThingTester(client)
 
 # Example: Testing the various statuses of a Thing
 thingUid = "astro:moon:56bdb13645"  # Replace with the actual Thing UID
