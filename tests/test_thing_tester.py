@@ -2,7 +2,8 @@ from openhab_test_suite import ThingTester
 from openhab import OpenHABClient
 
 # Here we establish the connection to the OpenHAB API
-client = OpenHABClient("http://127.0.0.1:8080", "openhab", "habopen")
+#client = OpenHABClient("http://127.0.0.1:8080", "openhab", "habopen")
+client = OpenHABClient("http://192.168.0.5:8080", "openHABAdmin", "hJem2jz6")
 
 # Instantiation of the ThingTester
 thingTester = ThingTester(client)
@@ -44,7 +45,7 @@ else:
     print(f"Thing {thingUid2} is NOT ONLINE.")
 
 # Test if the second Thing is OFFLINE
-if thingTester.is_thing_offline(thingUid2):
+if thingTester.isThingOnline(thingUid2):
     print(f"Thing {thingUid2} is OFFLINE.")
 else:
     print(f"Thing {thingUid2} is NOT OFFLINE.")

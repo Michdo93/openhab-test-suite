@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='openhab-test-suite',
-    version='2.0.0',
+    version='21.3.93',
     author='Michael Christian Dörflinger',
     author_email='michaeldoerflinger93@gmail.com',
     description='A comprehensive testing library for validating and interacting with openHAB installations.',

@@ -3,7 +3,8 @@ from openhab import OpenHABClient
 import time
 
 # Establishing connection to the OpenHAB API
-client = OpenHABClient("http://127.0.0.1:8080", "openhab", "habopen")
+#client = OpenHABClient("http://127.0.0.1:8080", "openhab", "habopen")
+client = OpenHABClient("http://192.168.0.5:8080", "openHABAdmin", "hJem2jz6")
 
 # Instantiating the RuleTester
 ruleTester = RuleTester(client)

@@ -9,6 +9,9 @@ A comprehensive testing library for validating and interacting with openHAB inst
 - **Item Testing**: Validate item states and ensure proper functionality for various types (e.g., Switch, String, Color).  
 - **Thing Testing**: Verify thing statuses (e.g., ONLINE, OFFLINE, PENDING) and troubleshoot connectivity issues.  
 - **Rule Testing**: Manage and execute rules programmatically to ensure their expected behavior.  
+- **Channel Testing**: Verify item-to-channel links and detect orphaned links.  
+- **Persistence Testing**: Check whether items are persisted and validate historical state data.  
+- **Sitemap Testing**: Confirm sitemap existence and validate item references within sitemaps.  
 - Supports local and cloud-based openHAB instances.  
 - Designed for developers and testers working on openHAB integrations.  
 
@@ -21,8 +24,7 @@ This library helps identify issues quickly, automate validation processes, and m
 
 ## **Requirements**  
 - Python 3.7 or newer  
-- `python-openhab-crud` library (install using `pip install python-openhab-crud`)
-- `python-openhab-itemevents` library (install using `pip install python-openhab-itemevents`)  
+- `python-openhab-rest-client` library (install using `pip install python-openhab-rest-client`), version `>=21.3.93`  
 - A running openHAB server with REST API enabled (you have to enable Basic Authentication)
 
 ---
@@ -101,6 +103,54 @@ itemName = "testSwithc"
 print(f"{itemName}: ", tester.testSwitch(itemName=itemName, command="ON", expectedState="ON"))
 ```
 
+### Test Channels
+```python
+from openhab_test_suite import ChannelTester
+
+channelTester = ChannelTester(client)
+
+# Check if an item is linked to a specific channel
+isLinked = channelTester.isItemLinkedToChannel("MySwitch", "mqtt:topic:broker:myswitch#state")
+print(f"Linked: {isLinked}")
+
+# Check for orphaned links
+if channelTester.hasOrphanedLinks():
+    print("Warning: orphaned links detected!")
+```
+
+### Test Persistence
+```python
+from openhab_test_suite import PersistenceTester
+
+persistenceTester = PersistenceTester(client)
+
+# Check if an item is tracked by a persistence service
+isPersisted = persistenceTester.isItemPersisted("rrd4j", "MyTemperatureSensor")
+print(f"Persisted: {isPersisted}")
+
+# Check if historical data exists within a time range
+hasData = persistenceTester.hasDataInRange(
+    "rrd4j", "MyTemperatureSensor",
+    "2024-01-01T00:00:00.000Z", "2024-01-02T00:00:00.000Z"
+)
+print(f"Data in range: {hasData}")
+```
+
+### Test Sitemaps
+```python
+from openhab_test_suite import SitemapTester
+
+sitemapTester = SitemapTester(client)
+
+# Check if a sitemap exists
+exists = sitemapTester.doesSitemapExist("default")
+print(f"Sitemap exists: {exists}")
+
+# Check if an item is referenced anywhere in the sitemap
+contains = sitemapTester.doesSitemapContainItem("default", "MySwitch")
+print(f"Item in sitemap: {contains}")
+```
+
 ---
 
 ## **Full List of Methods**
@@ -168,6 +218,43 @@ Provides methods to manage and test openHAB rules.
 
 ---
 
+### **ChannelTester**  
+Provides methods to test and validate openHAB item-to-channel links.
+
+| **Method** | **Parameters** | **Return Value** | **Description** |
+|---|---|---|---|
+| `__init__(self, client: OpenHABClient)` | `client` (OpenHABClient): The OpenHAB client used to interact with the OpenHAB server. | None | Initializes the `ChannelTester` with the provided OpenHAB client. |
+| `isItemLinkedToChannel(self, itemName: str, channelUID: str)` | `itemName` (str): Name of the item.<br>`channelUID` (str): UID of the channel. | `bool`: `True` if the item is linked to the channel, `False` otherwise. | Checks whether a specific item is linked to a specific channel. |
+| `getLinksForItem(self, itemName: str)` | `itemName` (str): Name of the item. | `list`: A list of link objects for the item. Returns an empty list if none found. | Returns all channel links associated with a given item. |
+| `hasOrphanedLinks(self)` | None | `bool`: `True` if orphaned links exist, `False` otherwise. | Checks whether there are any orphaned links (links without a corresponding item or channel) in the openHAB system. |
+| `isItemLinkedToAnyChannel(self, itemName: str)` | `itemName` (str): Name of the item. | `bool`: `True` if the item has at least one channel link, `False` otherwise. | Checks whether an item is linked to at least one channel. |
+
+---
+
+### **PersistenceTester**  
+Provides methods to test and validate openHAB persistence services.
+
+| **Method** | **Parameters** | **Return Value** | **Description** |
+|---|---|---|---|
+| `__init__(self, client: OpenHABClient)` | `client` (OpenHABClient): The OpenHAB client used to interact with the OpenHAB server. | None | Initializes the `PersistenceTester` with the provided OpenHAB client. |
+| `isItemPersisted(self, serviceID: str, itemName: str)` | `serviceID` (str): The ID of the persistence service (e.g., `"rrd4j"`).<br>`itemName` (str): Name of the item to check. | `bool`: `True` if the item is tracked by the persistence service, `False` otherwise. | Checks whether an item is present in a given persistence service. |
+| `hasDataInRange(self, serviceID: str, itemName: str, startTime: str, endTime: str)` | `serviceID` (str): The persistence service ID.<br>`itemName` (str): Name of the item.<br>`startTime` (str): ISO 8601 start timestamp.<br>`endTime` (str): ISO 8601 end timestamp. | `bool`: `True` if historical data exists within the range, `False` otherwise. | Checks whether historical data exists for an item within a specified time range. |
+| `checkLastPersistedState(self, serviceID: str, itemName: str, expectedState: str)` | `serviceID` (str): The persistence service ID.<br>`itemName` (str): Name of the item.<br>`expectedState` (str): The expected last persisted state value. | `bool`: `True` if the last persisted state matches the expected value, `False` otherwise. | Verifies whether the most recently persisted state of an item matches an expected value. |
+
+---
+
+### **SitemapTester**  
+Provides methods to test and validate openHAB sitemaps.
+
+| **Method** | **Parameters** | **Return Value** | **Description** |
+|---|---|---|---|
+| `__init__(self, client: OpenHABClient)` | `client` (OpenHABClient): The OpenHAB client used to interact with the OpenHAB server. | None | Initializes the `SitemapTester` with the provided OpenHAB client. |
+| `doesSitemapExist(self, sitemapName: str)` | `sitemapName` (str): The name of the sitemap to check. | `bool`: `True` if the sitemap exists, `False` otherwise. | Checks whether a sitemap with the given name exists in the openHAB system. |
+| `doesSitemapContainItem(self, sitemapName: str, itemName: str)` | `sitemapName` (str): The name of the sitemap.<br>`itemName` (str): The name of the item to search for. | `bool`: `True` if the item is referenced anywhere in the sitemap, `False` otherwise. | Recursively searches a sitemap for any reference to the given item. |
+| `_searchForItem(self, node: dict, itemName: str)` | `node` (dict): The current sitemap node to search.<br>`itemName` (str): The item name to find. | `bool`: `True` if the item is found within the node, `False` otherwise. | Internal recursive helper that traverses sitemap nodes to locate an item reference. |
+
+---
+
 ## **Contributing**
 
 We welcome contributions to improve **openhab-test-suite**!  
@@ -194,4 +281,4 @@ Please ensure your code adheres to PEP 8 guidelines and includes relevant docume
 
 ## **License**
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.  
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.

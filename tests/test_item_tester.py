@@ -3,7 +3,8 @@ from openhab import OpenHABClient
 import time
 
 # Establishing connection to the OpenHAB API
-client = OpenHABClient("http://127.0.0.1:8080", "openhab", "habopen")
+#client = OpenHABClient("http://127.0.0.1:8080", "openhab", "habopen")
+client = OpenHABClient("http://192.168.0.5:8080", "openHABAdmin", "hJem2jz6")
 
 # Instantiating the ItemTester
 tester = ItemTester(client)
@@ -125,5 +126,25 @@ def run_test():
         print(f"testSwitch: ", tester.testSwitch(itemName="testSwitch", command="ON", expectedState="ON", timeout=timeout))
     except Exception as e:
         print(f"Error in testSwitch: {e}")
+
+    # Test für Group-Methoden (neu im ItemTester)
+    try:
+        print(f"isGroupItem: ", tester.isGroupItem(itemName="testGroup"))
+    except Exception as e:
+        print(f"Error in isGroupItem: {e}")
+
+    time.sleep(1)
+
+    try:
+        print(f"doesGroupContainMember: ", tester.doesGroupContainMember(groupName="testGroup", memberName="testSwitch"))
+    except Exception as e:
+        print(f"Error in doesGroupContainMember: {e}")
+
+    time.sleep(1)
+
+    try:
+        print(f"checkGroupMemberState: ", tester.checkGroupMemberState(groupName="testGroup", memberName="testSwitch", expectedState="ON"))
+    except Exception as e:
+        print(f"Error in checkGroupMemberState: {e}")
     
 run_test()

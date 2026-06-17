@@ -39,7 +39,7 @@ class RuleTester:
         :param ruleUID: The UID of the rule to be enabled.
         :return: True if the rule was successfully enabled, False otherwise.
         """
-        rule = self.rulesAPI.enableRule(ruleUID)
+        rule = self.rulesAPI.enable(ruleUID)
 
         if "error" in rule:
             print(json.dumps(rule, indent=4))
@@ -54,7 +54,7 @@ class RuleTester:
         :param ruleUID: The UID of the rule to be disabled.
         :return: True if the rule was successfully disabled, False otherwise.
         """
-        rule = self.rulesAPI.disableRule(ruleUID)
+        rule = self.rulesAPI.disable(ruleUID)
 
         if "error" in rule:
             print(json.dumps(rule, indent=4))
