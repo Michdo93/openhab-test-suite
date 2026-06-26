@@ -1,11 +1,12 @@
 import time
-from openhab import OpenHABClient, Rules, Items
 import json
+from openhab import OpenHABClient, Rules, Items
+
 
 class RuleTester:
     def __init__(self, client: OpenHABClient):
         """
-        Initializes the ItemTester with an OpenHAB client.
+        Initializes the RuleTester with an OpenHAB client.
 
         :param client: The OpenHABClient instance used to communicate with the OpenHAB system.
         """
@@ -13,24 +14,36 @@ class RuleTester:
         self.rulesAPI = Rules(client)
         self.__itemsAPI = Items(client)
 
+    def _parseResponse(self, raw) -> dict:
+        """Safely parse a raw API response to a dict."""
+        if raw is None:
+            return {}
+        if isinstance(raw, dict):
+            return raw
+        try:
+            return json.loads(raw)
+        except (json.JSONDecodeError, TypeError):
+            return {}
+
     def runRule(self, ruleUID: str, contextData: dict = None) -> bool:
         """
         Executes a rule immediately.
 
         :param ruleUID: The UID of the rule to be executed.
+        :param contextData: Optional context data for the rule execution.
         :return: True if the rule was executed successfully, False otherwise.
         """
         if self.isRuleDisabled(ruleUID):
             print(f"Error: Rule {ruleUID} could not be executed because it is disabled.")
             return False
 
-        rule = self.rulesAPI.runNow(ruleUID, contextData)
-
-        if "error" in rule:
-            print(json.dumps(rule, indent=4))
+        try:
+            self.rulesAPI.runNow(ruleUID, contextData)
+            print(f"Rule {ruleUID} executed successfully.")
+            return True
+        except Exception as e:
+            print(f"Error executing rule {ruleUID}: {e}")
             return False
-        print(f"Rule {ruleUID} executed successfully.")
-        return True
 
     def enableRule(self, ruleUID: str) -> bool:
         """
@@ -39,13 +52,13 @@ class RuleTester:
         :param ruleUID: The UID of the rule to be enabled.
         :return: True if the rule was successfully enabled, False otherwise.
         """
-        rule = self.rulesAPI.enable(ruleUID)
-
-        if "error" in rule:
-            print(json.dumps(rule, indent=4))
+        try:
+            self.rulesAPI.enable(ruleUID)
+            print(f"Rule {ruleUID} enabled successfully.")
+            return True
+        except Exception as e:
+            print(f"Error enabling rule {ruleUID}: {e}")
             return False
-        print(f"Rule {ruleUID} executed successfully.")
-        return True
 
     def disableRule(self, ruleUID: str) -> bool:
         """
@@ -54,13 +67,13 @@ class RuleTester:
         :param ruleUID: The UID of the rule to be disabled.
         :return: True if the rule was successfully disabled, False otherwise.
         """
-        rule = self.rulesAPI.disable(ruleUID)
-
-        if "error" in rule:
-            print(json.dumps(rule, indent=4))
+        try:
+            self.rulesAPI.disable(ruleUID)
+            print(f"Rule {ruleUID} disabled successfully.")
+            return True
+        except Exception as e:
+            print(f"Error disabling rule {ruleUID}: {e}")
             return False
-        print(f"Rule {ruleUID} executed successfully.")
-        return True
 
     def testRuleExecution(self, ruleUID: str, expectedItem: str, expectedValue: str) -> bool:
         """
@@ -72,19 +85,18 @@ class RuleTester:
         :return: True if the test was successful, otherwise False.
         """
         try:
-            # Run the rule
             if not self.runRule(ruleUID):
                 print(f"Error: Rule {ruleUID} could not be executed.")
                 return False
 
-            # Short pause for rule execution
             time.sleep(2)
 
-            # Retrieve the state of the item
             state = self.__itemsAPI.getItemState(expectedItem)
-            
             if state is None or state != expectedValue:
-                print(f"Error: State of item {expectedItem} after rule execution does not match. Expected: {expectedValue}, Found: {state}")
+                print(
+                    f"Error: State of item {expectedItem} after rule execution does not match. "
+                    f"Expected: {expectedValue}, Found: {state}"
+                )
                 return False
 
             print(f"{expectedItem} state after rule execution: {state}")
@@ -95,21 +107,16 @@ class RuleTester:
 
     def isRuleActive(self, ruleUID: str) -> bool:
         """
-        Checks if the rule is active.
+        Checks if the rule is active (not UNINITIALIZED).
 
         :param ruleUID: The UID of the rule to check.
         :return: True if the rule is active, False otherwise.
         """
-        rule = self.rulesAPI.getRule(ruleUID)
-
-        # Check if the response is a valid dictionary
-        if isinstance(rule, dict) and "status" in rule:
-            # Extract the status
+        rule = self._parseResponse(self.rulesAPI.getRule(ruleUID))
+        if "status" in rule:
             status = rule.get("status", {}).get("status", "UNINITIALIZED")
             print(f"Rule status: {status}")
             return status != "UNINITIALIZED"
-
-        # Error case
         print(f"Error retrieving the status of rule {ruleUID}. Response: {rule}")
         return False
 
@@ -120,19 +127,12 @@ class RuleTester:
         :param ruleUID: The UID of the rule to check.
         :return: True if the rule is disabled, False otherwise.
         """
-        rule = self.rulesAPI.getRule(ruleUID)
-
-        # Check if the response is a valid dictionary
-        if isinstance(rule, dict) and "status" in rule:
-            # Extract the status and statusDetail
+        rule = self._parseResponse(self.rulesAPI.getRule(ruleUID))
+        if "status" in rule:
             status = rule.get("status", {}).get("status", "IDLE")
             statusDetail = rule.get("status", {}).get("statusDetail", "NONE")
             print(f"Rule status: {status}, Detail: {statusDetail}")
-
-            # Rule is disabled if status is "UNINITIALIZED" and statusDetail is "DISABLED"
             return status == "UNINITIALIZED" and statusDetail == "DISABLED"
-
-        # Error case
         print(f"Error retrieving the status of rule {ruleUID}. Response: {rule}")
         return False
 
@@ -143,18 +143,11 @@ class RuleTester:
         :param ruleUID: The UID of the rule to check.
         :return: True if the rule is running, False otherwise.
         """
-        rule = self.rulesAPI.getRule(ruleUID)
-
-        # Check if the response is a valid dictionary
-        if isinstance(rule, dict) and "status" in rule:
-            # Extract the status
+        rule = self._parseResponse(self.rulesAPI.getRule(ruleUID))
+        if "status" in rule:
             status = rule.get("status", {}).get("status", "UNKNOWN")
             print(f"Rule status: {status}")
-
-            # Rule is running if the status is "RUNNING"
             return status == "RUNNING"
-
-        # Error case
         print(f"Error retrieving the status of rule {ruleUID}. Response: {rule}")
         return False
 
@@ -165,18 +158,11 @@ class RuleTester:
         :param ruleUID: The UID of the rule to check.
         :return: True if the rule is in the IDLE state, False otherwise.
         """
-        rule = self.rulesAPI.getRule(ruleUID)
-
-        # Check if the response is a valid dictionary
-        if isinstance(rule, dict) and "status" in rule:
-            # Extract the status
+        rule = self._parseResponse(self.rulesAPI.getRule(ruleUID))
+        if "status" in rule:
             status = rule.get("status", {}).get("status", "UNKNOWN")
             print(f"Rule status: {status}")
-
-            # Rule is in the IDLE state if the status is "IDLE"
             return status == "IDLE"
-
-        # Error case
         print(f"Error retrieving the status of rule {ruleUID}. Response: {rule}")
         return False
 
@@ -185,13 +171,10 @@ class RuleTester:
         Retrieves the full status of a rule.
 
         :param ruleUID: The UID of the rule whose status is to be retrieved.
-        :return: A dictionary containing status information or an empty dictionary in case of an error.
+        :return: A dictionary containing status information or an empty dictionary on error.
         """
-        rule = self.rulesAPI.getRule(ruleUID)
-
-        # Check if the response is a valid dictionary
-        if isinstance(rule, dict) and "status" in rule:
-            # Extract status information
+        rule = self._parseResponse(self.rulesAPI.getRule(ruleUID))
+        if "status" in rule:
             statusInfo = {
                 "status": rule.get("status", {}).get("status", "UNKNOWN"),
                 "statusDetail": rule.get("status", {}).get("statusDetail", "UNKNOWN"),
@@ -201,7 +184,5 @@ class RuleTester:
             }
             print(f"Rule status details: {statusInfo}")
             return statusInfo
-
-        # Error case
         print(f"Error retrieving the status of rule {ruleUID}. Response: {rule}")
         return {}

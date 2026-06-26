@@ -14,6 +14,7 @@ class ItemTester:
         self.client = client
         self.itemsAPI = Items(client)
         self.itemEventsAPI = ItemEvents(client)
+
     # -------------------------------------------------------------------------
     # Command validators (static helpers)
     # -------------------------------------------------------------------------
@@ -67,7 +68,6 @@ class ItemTester:
         v = value.strip().upper()
         if v in ("ON", "OFF", "INCREASE", "DECREASE"):
             return True
-        # HSB: "360,100,100"
         parts = value.strip().split(",")
         if len(parts) == 3:
             try:
@@ -93,7 +93,6 @@ class ItemTester:
         if value is None:
             return False
         s = str(value).strip()
-        # Try to parse the numeric part before an optional unit
         match = re.match(r'^-?\d+(\.\d+)?(\s+\S+)?$', s)
         return match is not None
 
@@ -102,11 +101,9 @@ class ItemTester:
         """
         ISO-8601 datetime string, e.g. "2024-01-15T08:30:00+0000"
         or "2024-01-15T08:30:00.000Z".
-        openHAB accepts a fairly broad ISO-8601 subset.
         """
         if not isinstance(value, str):
             return False
-        # Basic ISO-8601 pattern: YYYY-MM-DDThh:mm:ss with optional millis and timezone
         pattern = r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$'
         return re.match(pattern, value.strip()) is not None
 
@@ -124,7 +121,7 @@ class ItemTester:
             lat = float(parts[0])
             lon = float(parts[1])
             if len(parts) == 3:
-                float(parts[2])  # altitude: any float is valid
+                float(parts[2])
             return (-90.0 <= lat <= 90.0) and (-180.0 <= lon <= 180.0)
         except ValueError:
             return False
@@ -159,7 +156,15 @@ class ItemTester:
         :param itemName: The name of the item to check.
         :return: True if the item exists, otherwise False.
         """
-        testItem = self.itemsAPI.getItem(itemName)
+        raw = self.itemsAPI.getItem(itemName)
+        if raw is None:
+            print(f"Error: The item '{itemName}' does not exist!")
+            return False
+        try:
+            testItem = json.loads(raw) if isinstance(raw, str) else raw
+        except (json.JSONDecodeError, TypeError):
+            print(f"Error: Could not parse response for item '{itemName}'.")
+            return False
         if testItem and testItem.get("name") == itemName:
             return True
         print(f"Error: The item '{itemName}' does not exist!")
@@ -183,19 +188,15 @@ class ItemTester:
             return False
 
         try:
-            testItem = self.itemsAPI.getItem(itemName)
-            if testItem is None:
+            raw = self.itemsAPI.getItem(itemName)
+            if raw is None:
                 print(f"Error: The item '{itemName}' could not be found.")
                 return False
-
+            testItem = json.loads(raw) if isinstance(raw, str) else raw
             actualType = testItem.get("type", "")
-            # Group items may be stored as "Group:Switch:OR(ON,OFF)" etc.
-            # Compare the base type (before the colon).
             baseType = actualType.split(":")[0]
-
             if baseType == itemType:
                 return True
-
             print(
                 f"Error: The item '{itemName}' is not of type '{itemType}'! "
                 f"Found type: '{actualType}'"
@@ -217,21 +218,28 @@ class ItemTester:
         if checkState is None:
             print(f"Error: Could not retrieve the state for item '{itemName}'.")
             return False
-        return checkState == state
+        return checkState == str(state)
 
     def isGroupItem(self, itemName: str) -> bool:
         return self.checkItemIsType(itemName, "Group")
 
     def getGroupMembers(self, groupName: str) -> list:
-        item = self.items.getItem(groupName, recursive=True)
-        return item.get("members", [])
+        """Returns the list of member items in a group."""
+        raw = self.itemsAPI.getItem(groupName, recursive=True)  # BUG FIX: was self.items
+        if raw is None:
+            return []
+        try:
+            item = json.loads(raw) if isinstance(raw, str) else raw
+            return item.get("members", [])
+        except (json.JSONDecodeError, TypeError):
+            return []
 
     def doesGroupContainMember(self, groupName: str, memberName: str) -> bool:
         members = self.getGroupMembers(groupName)
         return any(m.get("name") == memberName for m in members)
 
     def checkGroupMemberState(self, groupName: str, memberName: str,
-                            expectedState: str) -> bool:
+                               expectedState: str) -> bool:
         members = self.getGroupMembers(groupName)
         for member in members:
             if member.get("name") == memberName:
@@ -243,18 +251,6 @@ class ItemTester:
     # -------------------------------------------------------------------------
 
     def testColor(self, itemName: str, command: str, expectedState=None, timeout: int = 10) -> bool:
-        """
-        Tests the functionality of a Color item.
-
-        Valid commands: ON, OFF, INCREASE, DECREASE, or HSB string "H,S,B"
-        (H: 0-360, S: 0-100, B: 0-100).
-
-        :param itemName: The name of the Color item.
-        :param command: The command to send to the item.
-        :param expectedState: The expected state after the command, optional.
-        :param timeout: The timeout period for the test in seconds.
-        :return: True if the test passes, otherwise False.
-        """
         if not self.checkItemIsType(itemName, "Color"):
             print(f"Test failed: '{itemName}' is not of type 'Color'.")
             return False
@@ -267,18 +263,6 @@ class ItemTester:
         return self.__testItem(itemName, "Color", command, expectedState, timeout)
 
     def testContact(self, itemName: str, update: str = None, expectedState: str = None, timeout: int = 10) -> bool:
-        """
-        Tests the functionality of a Contact item.
-
-        Valid updates: OPEN, CLOSED.
-        Note: Contact items only accept postUpdate (no sendCommand).
-
-        :param itemName: The name of the Contact item.
-        :param update: The update to post to the item.
-        :param expectedState: The expected state after the update.
-        :param timeout: The timeout period for the test in seconds.
-        :return: True if the test passes, otherwise False.
-        """
         if not self.checkItemIsType(itemName, "Contact"):
             print(f"Test failed: '{itemName}' is not of type 'Contact'.")
             return False
@@ -291,18 +275,6 @@ class ItemTester:
         return self.__testItem(itemName, "Contact", update, expectedState, timeout)
 
     def testDateTime(self, itemName: str, command: str, expectedState=None, timeout: int = 10) -> bool:
-        """
-        Tests the functionality of a DateTime item.
-
-        Valid commands: ISO-8601 datetime strings,
-        e.g. "2024-01-15T08:30:00+0000" or "2024-01-15T08:30:00.000Z".
-
-        :param itemName: The name of the DateTime item.
-        :param command: The command to send to the item.
-        :param expectedState: The expected state after the command, optional.
-        :param timeout: The timeout period for the test in seconds.
-        :return: True if the test passes, otherwise False.
-        """
         if not self.checkItemIsType(itemName, "DateTime"):
             print(f"Test failed: '{itemName}' is not of type 'DateTime'.")
             return False
@@ -315,17 +287,6 @@ class ItemTester:
         return self.__testItem(itemName, "DateTime", command, expectedState, timeout)
 
     def testDimmer(self, itemName: str, command: str, expectedState=None, timeout: int = 10) -> bool:
-        """
-        Tests the functionality of a Dimmer item.
-
-        Valid commands: ON, OFF, INCREASE, DECREASE, or a percentage value 0-100.
-
-        :param itemName: The name of the Dimmer item.
-        :param command: The command to send to the item.
-        :param expectedState: The expected state after the command, optional.
-        :param timeout: The timeout period for the test in seconds.
-        :return: True if the test passes, otherwise False.
-        """
         if not self.checkItemIsType(itemName, "Dimmer"):
             print(f"Test failed: '{itemName}' is not of type 'Dimmer'.")
             return False
@@ -338,18 +299,6 @@ class ItemTester:
         return self.__testItem(itemName, "Dimmer", str(command), str(expectedState) if expectedState is not None else None, timeout)
 
     def testImage(self, itemName: str, command: str, expectedState=None, timeout: int = 10) -> bool:
-        """
-        Tests the functionality of an Image item.
-
-        Valid commands: a public HTTP/HTTPS URL or a Base64 data URI
-        (e.g. "data:image/png;base64,...").
-
-        :param itemName: The name of the Image item.
-        :param command: The command to send to the item.
-        :param expectedState: The expected state after the command, optional.
-        :param timeout: The timeout period for the test in seconds.
-        :return: True if the test passes, otherwise False.
-        """
         if not self.checkItemIsType(itemName, "Image"):
             print(f"Test failed: '{itemName}' is not of type 'Image'.")
             return False
@@ -362,19 +311,6 @@ class ItemTester:
         return self.__testItem(itemName, "Image", command, expectedState, timeout)
 
     def testLocation(self, itemName: str, update: str, expectedState=None, timeout: int = 10) -> bool:
-        """
-        Tests the functionality of a Location item.
-
-        Valid updates: "lat,lon" or "lat,lon,alt"
-        (lat: -90 to 90, lon: -180 to 180, alt: any float).
-        Note: Location items only accept postUpdate (no sendCommand).
-
-        :param itemName: The name of the Location item.
-        :param update: The update to post to the item.
-        :param expectedState: The expected state after the update.
-        :param timeout: The timeout period for the test in seconds.
-        :return: True if the test passes, otherwise False.
-        """
         if not self.checkItemIsType(itemName, "Location"):
             print(f"Test failed: '{itemName}' is not of type 'Location'.")
             return False
@@ -387,18 +323,6 @@ class ItemTester:
         return self.__testItem(itemName, "Location", update, expectedState, timeout)
 
     def testNumber(self, itemName: str, command, expectedState=None, timeout: int = 10) -> bool:
-        """
-        Tests the functionality of a Number item.
-
-        Valid commands: any numeric value, optionally followed by a unit,
-        e.g. "20", "20.5", "20 °C".
-
-        :param itemName: The name of the Number item.
-        :param command: The command to send to the item.
-        :param expectedState: The expected state after the command, optional.
-        :param timeout: The timeout period for the test in seconds.
-        :return: True if the test passes, otherwise False.
-        """
         if not self.checkItemIsType(itemName, "Number"):
             print(f"Test failed: '{itemName}' is not of type 'Number'.")
             return False
@@ -416,17 +340,6 @@ class ItemTester:
         )
 
     def testPlayer(self, itemName: str, command: str, expectedState=None, timeout: int = 10) -> bool:
-        """
-        Tests the functionality of a Player item.
-
-        Valid commands: PLAY, PAUSE, NEXT, PREVIOUS, REWIND, FASTFORWARD.
-
-        :param itemName: The name of the Player item.
-        :param command: The command to send to the item.
-        :param expectedState: The expected state after the command, optional.
-        :param timeout: The timeout period for the test in seconds.
-        :return: True if the test passes, otherwise False.
-        """
         if not self.checkItemIsType(itemName, "Player"):
             print(f"Test failed: '{itemName}' is not of type 'Player'.")
             return False
@@ -439,17 +352,6 @@ class ItemTester:
         return self.__testItem(itemName, "Player", command, expectedState, timeout)
 
     def testRollershutter(self, itemName: str, command: str, expectedState=None, timeout: int = 10) -> bool:
-        """
-        Tests the functionality of a Rollershutter item.
-
-        Valid commands: UP, DOWN, STOP, MOVE, or a percentage value 0-100.
-
-        :param itemName: The name of the Rollershutter item.
-        :param command: The command to send to the item.
-        :param expectedState: The expected state after the command, optional.
-        :param timeout: The timeout period for the test in seconds.
-        :return: True if the test passes, otherwise False.
-        """
         if not self.checkItemIsType(itemName, "Rollershutter"):
             print(f"Test failed: '{itemName}' is not of type 'Rollershutter'.")
             return False
@@ -462,17 +364,6 @@ class ItemTester:
         return self.__testItem(itemName, "Rollershutter", command, expectedState, timeout)
 
     def testString(self, itemName: str, command, expectedState=None, timeout: int = 10) -> bool:
-        """
-        Tests the functionality of a String item.
-
-        Valid commands: any non-None string value.
-
-        :param itemName: The name of the String item.
-        :param command: The command to send to the item.
-        :param expectedState: The expected state after the command, optional.
-        :param timeout: The timeout period for the test in seconds.
-        :return: True if the test passes, otherwise False.
-        """
         if not self.checkItemIsType(itemName, "String"):
             print(f"Test failed: '{itemName}' is not of type 'String'.")
             return False
@@ -482,17 +373,6 @@ class ItemTester:
         return self.__testItem(itemName, "String", command, expectedState, timeout)
 
     def testSwitch(self, itemName: str, command: str, expectedState=None, timeout: int = 10) -> bool:
-        """
-        Tests the functionality of a Switch item.
-
-        Valid commands: ON, OFF.
-
-        :param itemName: The name of the Switch item.
-        :param command: The command to send to the item.
-        :param expectedState: The expected state after the command, optional.
-        :param timeout: The timeout period for the test in seconds.
-        :return: True if the test passes, otherwise False.
-        """
         if not self.checkItemIsType(itemName, "Switch"):
             print(f"Test failed: '{itemName}' is not of type 'Switch'.")
             return False
@@ -516,21 +396,9 @@ class ItemTester:
         expectedState=None,
         timeout: int = 10,
     ) -> bool:
-        """
-        Generic test function for validating the behavior of an item.
-
-        :param itemName: The name of the item to test.
-        :param itemType: The type of the item.
-        :param commandOrUpdate: The command or update to send to the item (optional).
-        :param expectedState: The expected state after the command/update, optional.
-                              Can be a single value or a list/set of possible states.
-        :param timeout: The timeout period for the test in seconds.
-        :return: True if the test passes, otherwise False.
-        """
         initialState = None
         returnValue = False
         try:
-            # Retrieve the initial state so we can reset it afterwards
             initialState = (
                 self.itemsAPI.getItemState(itemName)
                 if commandOrUpdate is not None
@@ -539,7 +407,6 @@ class ItemTester:
             if initialState is None and commandOrUpdate is not None:
                 print(f"Warning: Could not retrieve initial state for item '{itemName}'.")
 
-            # Open SSE connection before sending the command so we don't miss events
             response = self.itemEventsAPI.ItemStateChangedEvent(itemName)
             if response is None:
                 print(f"Error: No SSE response received for item '{itemName}'.")
@@ -548,15 +415,12 @@ class ItemTester:
             startTime = time.time()
 
             with response as events:
-                # Send the command / post update
                 if commandOrUpdate is not None:
                     if itemType in ("Contact", "Location"):
                         self.itemsAPI.postUpdate(itemName, str(commandOrUpdate))
                     else:
                         self.itemsAPI.sendCommand(itemName, commandOrUpdate)
 
-                    # Walk through incoming SSE lines until we see the expected state
-                    # or the timeout expires
                     lines = events.iter_lines()
                     while time.time() - startTime < timeout:
                         line = next(lines, None)
@@ -590,7 +454,6 @@ class ItemTester:
                         except json.JSONDecodeError:
                             print("Warning: Event could not be converted to JSON.")
 
-                # Timeout reached — fall back to a direct state check
                 returnValue = self.__checkFinalState(itemName, expectedState)
 
         except Exception as e:
@@ -598,19 +461,11 @@ class ItemTester:
             returnValue = False
 
         finally:
-            # Always restore the item to its original state
             self.__resetItem(itemName, itemType, initialState)
 
         return returnValue
 
     def __resetItem(self, itemName: str, itemType: str, initialState) -> None:
-        """
-        Resets the item to its initial state.
-
-        :param itemName: The name of the item.
-        :param itemType: The type of the item.
-        :param initialState: The state to restore.
-        """
         if initialState is not None:
             try:
                 if itemType in ("Contact", "Location"):
@@ -621,14 +476,6 @@ class ItemTester:
                 print(f"Warning: Could not reset item '{itemName}' to '{initialState}': {e}")
 
     def __checkFinalState(self, itemName: str, expectedState) -> bool:
-        """
-        Fallback check: reads the current item state and compares it to the
-        expected state (or any member of a list/set of expected states).
-
-        :param itemName: The name of the item.
-        :param expectedState: Single value or list/set of acceptable states.
-        :return: True if the current state matches, otherwise False.
-        """
         if isinstance(expectedState, (list, set)):
             if not any(self.checkItemHasState(itemName, exp) for exp in expectedState):
                 print(

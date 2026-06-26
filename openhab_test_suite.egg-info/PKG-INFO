@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: openhab-test-suite
-Version: 21.3.93
+Version: 22.0.0
 Summary: A comprehensive testing library for validating and interacting with openHAB installations.
 Home-page: https://github.com/Michdo93/openhab-test-suite
 Author: Michael Christian Dörflinger
