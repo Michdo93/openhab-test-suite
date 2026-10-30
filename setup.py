@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='openhab-test-suite',
-    version='22.0.0',
+    version='22.0.1',
     author='Michael Christian Dörflinger',
     author_email='michaeldoerflinger93@gmail.com',
     description='A comprehensive testing library for validating and interacting with openHAB installations.',
@@ -11,7 +11,7 @@ setup(
     url='https://github.com/Michdo93/openhab-test-suite',
     packages=find_packages(),
     install_requires=[
-        'python-openhab-rest-client',
+        'python-openhab-rest-client>=21.4.0',
     ],
     classifiers=[
         'Programming Language :: Python :: 3',

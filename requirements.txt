@@ -1,1 +1,1 @@
-python-openhab-rest-client>=21.3.93
+python-openhab-rest-client>=21.4.0
