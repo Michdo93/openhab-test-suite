@@ -183,7 +183,8 @@ class ItemTester:
             "Image", "Location", "Number", "Player",
             "Rollershutter", "String", "Switch",
         ]
-        if itemType not in validTypes:
+        # "Number:Temperature" etc.: the base type is checked, the dimension must match too
+        if itemType.split(":")[0] not in validTypes:
             print(f"Error: '{itemType}' is not a valid item type.")
             return False
 
@@ -195,7 +196,7 @@ class ItemTester:
             testItem = json.loads(raw) if isinstance(raw, str) else raw
             actualType = testItem.get("type", "")
             baseType = actualType.split(":")[0]
-            if baseType == itemType:
+            if baseType == itemType or actualType == itemType:
                 return True
             print(
                 f"Error: The item '{itemName}' is not of type '{itemType}'! "

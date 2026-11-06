@@ -1,6 +1,6 @@
 Metadata-Version: 2.4
 Name: openhab-test-suite
-Version: 22.0.1
+Version: 22.0.2
 Summary: A comprehensive testing library for validating and interacting with openHAB installations.
 Home-page: https://github.com/Michdo93/openhab-test-suite
 Author: Michael Christian Dörflinger
@@ -187,7 +187,7 @@ Provides methods to test and validate openHAB items.
 |-------------------------|-----------------------------------------------------------------------------------------------------------------------------------|--------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `__init__`             | `client: OpenHABClient`                                                                                                    | None                     | Initializes the `ItemTester` class with an OpenHAB client.                                                                                           |
 | `doesItemExist`        | `itemName: str`                                                                                                                  | `True`/`False`           | Checks whether an item exists in the OpenHAB system.                                                                                                    |
-| `checkItemIsType`      | `itemName: str`, `itemType: str`                                                                                                 | `True`/`False`           | Checks if an item has the expected type.                                                                                                                |
+| `checkItemIsType`      | `itemName: str`, `itemType: str`                                                                                                 | `True`/`False`           | Checks if an item has the expected type â€“ a base type such as `Number` or a type with dimension such as `Number:Temperature`.                                                                                                                |
 | `checkItemHasState`    | `itemName: str`, `state`                                                                                                         | `True`/`False`           | Verifies whether an item has a specific state.                                                                                                          |
 | `testColor`            | `itemName: str`, `command: str`, `expectedState=None`, `timeout: int = 60`                                                       | `True`/`False`           | Tests the functionality of an item of type `Color`.                                                                                                     |
 | `testContact`          | `itemName: str`, `update: str = None`, `expectedState: str = None`, `timeout: int = 60`                                          | `True`/`False`           | Tests the functionality of an item of type `Contact`.                                                                                                   |
